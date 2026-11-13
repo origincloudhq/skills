@@ -1,0 +1,25 @@
+# A program depending on every crate of the Rust SDK, at the release the
+# image's build names, and on what a program calling them uses, so that
+# Cargo's registry cache holds every crate they need.
+[package]
+name = "seed"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+anyhow = "1"
+origincloud-billing = "=SDK_RUST_VERSION"
+origincloud-compute = "=SDK_RUST_VERSION"
+origincloud-core = "=SDK_RUST_VERSION"
+origincloud-dns = "=SDK_RUST_VERSION"
+origincloud-iam = "=SDK_RUST_VERSION"
+origincloud-location = "=SDK_RUST_VERSION"
+origincloud-network = "=SDK_RUST_VERSION"
+origincloud-observability = "=SDK_RUST_VERSION"
+origincloud-pvs = "=SDK_RUST_VERSION"
+origincloud-resourcemanager = "=SDK_RUST_VERSION"
+origincloud-sts = "=SDK_RUST_VERSION"
+origincloud-support = "=SDK_RUST_VERSION"
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }

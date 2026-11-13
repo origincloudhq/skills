@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
-# Prepares an eval's agent container, then runs the agent (its arguments):
-# a home of its own, a login session and profile for the `origin` CLI that
-# exist only here, an `origin` on PATH that calls the fake API, and, with
+# Prepares an eval's agent container, then runs the agent, or a check (its
+# arguments): a home of its own, a login session and profile for the
+# `origin` CLI that exist only here, an `origin` on PATH that calls the fake
+# API, the npm registry of the image's packages where it has one, and, with
 # the skill, the skill installed where the agent finds a project's skills.
 #
 # Reads ORIGIN_EVAL_ENDPOINTS (the fake API's ORIGINCLOUD_*_ENDPOINT lines),
@@ -38,6 +39,16 @@ WRAPPER
   chmod 755 /tmp/bin/origin
 fi
 export PATH="/tmp/bin:${PATH}"
+
+# The image's npm packages (evals/container/npm-mirror.mjs), for npm on
+# 127.0.0.1:4873.
+if [[ -d /opt/npm ]]; then
+  node /usr/local/lib/eval/npm-mirror.mjs serve /opt/npm 4873 > /dev/null 2>&1 &
+  for _ in $(seq 100); do
+    curl -fs -o /dev/null http://127.0.0.1:4873/typescript && break
+    sleep 0.1
+  done
+fi
 
 if [[ -d /opt/skill && -n "${EVAL_SKILLS_DIR:-}" ]]; then
   mkdir -p "/work/${EVAL_SKILLS_DIR}"

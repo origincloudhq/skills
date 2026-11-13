@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+#
+# A check of an origincloud-terraform task (scripts/eval.sh): plans the
+# configuration in the current directory against the fake API, whose one
+# endpoint for every service EVAL_ENDPOINT names, with a token that exists
+# only there. Fails when `tofu plan` does.
+#
+# For the plan alone, a file of its own sets the provider's `endpoint`: an
+# override of the configuration's provider block, or the block itself when
+# the configuration has none. A variable without a default, which the user
+# would give a value, such as their SSH public key, gets a stand-in of its
+# type: a string (an SSH public key for a name with `key` or `ssh` in it),
+# 1, false, or an empty list. Both files are removed afterwards.
+set -euo pipefail
+
+[[ -n "${EVAL_ENDPOINT:-}" ]] || { echo "EVAL_ENDPOINT names no fake API" >&2; exit 2; }
+tf="$(command -v tofu || command -v terraform)"
+
+provider=zz_eval_endpoint.tf
+if grep -qsE '^[[:space:]]*provider[[:space:]]+"origincloud"' ./*.tf; then
+  provider=zz_eval_endpoint_override.tf
+fi
+values=zz_eval_values.auto.tfvars.json
+trap 'rm -f "${provider}" "${values}"' EXIT
+printf 'provider "origincloud" {\n  endpoint = "%s"\n}\n' "${EVAL_ENDPOINT}" > "${provider}"
+
+# The variables without a default, as `name<TAB>type` lines, from the
+# `variable "name" { … }` blocks of the configuration's files.
+awk '
+  /^[[:space:]]*variable[[:space:]]+"[^"]+"[[:space:]]*\{/ {
+    match($0, /"[^"]+"/); name = substr($0, RSTART + 1, RLENGTH - 2)
+    depth = 0; type = ""; has_default = 0; inside = 1
+  }
+  inside {
+    line = $0
+    if (depth == 1 && line ~ /^[[:space:]]*default[[:space:]]*=/) has_default = 1
+    if (depth == 1 && line ~ /^[[:space:]]*type[[:space:]]*=/) { sub(/^[[:space:]]*type[[:space:]]*=[[:space:]]*/, "", line); type = line }
+    depth += gsub(/\{/, "{", $0) - gsub(/\}/, "}", $0)
+    if (depth <= 0) { if (!has_default) print name "\t" type; inside = 0 }
+  }
+' ./*.tf 2> /dev/null | jq -Rn '
+  [inputs | split("\t") | {name: .[0], type: (.[1] // "")}]
+  | map({key: .name, value: (
+      if (.type | test("^number")) then 1
+      elif (.type | test("^bool")) then false
+      elif (.type | test("^(list|set|tuple)")) then []
+      elif (.name | test("key|ssh"; "i")) then "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEvalStandInKeyForThePlanOnly0000000000000 eval@example"
+      else "eval" end)})
+  | from_entries' > "${values}"
+
+ORIGINCLOUD_ACCESS_TOKEN=oc_eval_7Hq2Lx9VbN4mRt8 "${tf}" plan -input=false -lock=false -no-color

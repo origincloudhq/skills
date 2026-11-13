@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+#
+# Runs one `run` check of an eval's task (scripts/eval.sh): its command, the
+# argument, in the current directory, the task's. When EVAL_CHECK_API names
+# a directory holding a world.json, the check gets a fake API of its own,
+# started afresh from that world, logging to requests.log there, whatever
+# the agent did to the one it called; EVAL_ENDPOINT is then its one
+# endpoint for every service. EVAL_FAKE_API is the fake API's binary,
+# `fake-api` on PATH by default.
+set -euo pipefail
+
+[[ $# -eq 1 ]] || { echo "usage: eval-check COMMAND" >&2; exit 2; }
+api="${EVAL_CHECK_API:-}"
+if [[ -n "${api}" && -f "${api}/world.json" ]]; then
+  rm -f "${api}/endpoints.env"
+  "${EVAL_FAKE_API:-fake-api}" --world "${api}/world.json" --log "${api}/requests.log" \
+    --env "${api}/endpoints.env" 2> "${api}/stderr.log" &
+  pid=$!
+  trap 'kill "${pid}" 2> /dev/null || true' EXIT
+  for _ in $(seq 300); do
+    [[ -s "${api}/endpoints.env" ]] && break
+    sleep 0.1
+  done
+  EVAL_ENDPOINT="$(sed -n 's/^EVAL_ENDPOINT=//p' "${api}/endpoints.env")"
+  [[ -n "${EVAL_ENDPOINT}" ]] || { echo "the check's fake API didn't start: ${api}/stderr.log" >&2; exit 1; }
+  export EVAL_ENDPOINT
+fi
+bash -c "$1"

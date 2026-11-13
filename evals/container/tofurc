@@ -1,0 +1,8 @@
+# OpenTofu's configuration in an eval's container: providers come from the
+# mirror the image holds, and from nowhere else, as the container has no way
+# to the registries.
+provider_installation {
+  filesystem_mirror {
+    path = "/opt/tofu/providers"
+  }
+}

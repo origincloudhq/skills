@@ -63,11 +63,12 @@ jobs:
         run: cargo test --locked --workspace
 
       - name: Scripts
-        run: shellcheck scripts/*.sh
+        run: shellcheck scripts/*.sh evals/bin/* evals/container/*.sh
 
   # The containers scripts/eval.sh runs the agents in: they build, the
-  # `origin` release in them is the one clients.toml pins, and the proxy
-  # starts. The agents themselves run outside CI, with their credentials.
+  # `origin` release in them is the one clients.toml pins, the Terraform
+  # and SDK toolchains work without a network, and the proxy starts. The
+  # agents themselves run outside CI, with their credentials.
   eval-containers:
     runs-on: ubuntu-latest
     steps:
@@ -89,6 +90,53 @@ jobs:
               -t "eval-${agent}" .
             docker run --rm --entrypoint /opt/origin/origin "eval-${agent}" --version
           done
+
+      # One agent's images for the Terraform and SDK skills: the toolchains
+      # come before the agent's layer, so the other agent's would differ in
+      # that layer alone.
+      - name: Toolchain images
+        run: |
+          pin() { sed -n "/^\[$1\]/,/^\[/s/^$2 = \"\(.*\)\"/\1/p" clients.toml; }
+          version="$(sed -n 's/^readonly CLAUDE_CODE_VERSION="\(.*\)"/\1/p' scripts/eval.sh)"
+          for skill in origincloud-terraform origincloud-sdk; do
+            docker build -f evals/container/Dockerfile --target with \
+              --build-arg AGENT=claude --build-arg AGENT_VERSION="${version}" \
+              --build-arg ORIGIN_VERSION="$(pin cli version)" --build-arg SKILL="${skill}" \
+              --build-arg PROVIDER_SOURCE="$(pin terraform source)" \
+              --build-arg PROVIDER_VERSION="$(pin terraform version)" \
+              --build-arg SDK_GO_VERSION="$(pin sdk go)" \
+              --build-arg SDK_RUST_VERSION="$(pin sdk rust)" \
+              --build-arg SDK_TYPESCRIPT_VERSION="$(pin sdk typescript)" \
+              -t "eval-${skill}" .
+          done
+
+      # What the tasks build, as an agent would, in the checks' container:
+      # no network, the world's fake API for the plan.
+      - name: Toolchains offline
+        run: |
+          mkdir -p work/tf work/go work/ts work/rs api && chmod -R a+rwX work api
+          cp skills/origincloud-terraform/evals/worlds/platform.json api/world.json
+          cat > work/tf/main.tf <<'HCL'
+          terraform {
+            required_providers {
+              origincloud = { source = "origincloudhq/origincloud" }
+            }
+          }
+          import {
+            to = origincloud_pvs_volume.data
+            id = "projects/my-project-123/zones/eu-central1-az1/volumes/vol-1a2b3c"
+          }
+          resource "origincloud_pvs_volume" "data" {
+            project  = "my-project-123"
+            zone     = "eu-central1-az1"
+            size_gib = 100
+          }
+          HCL
+          check() { docker run --rm --network none --user "$(id -u):$(id -g)" -v "${PWD}/work/$2:/work" -v "${PWD}/api:/checks" -e EVAL_CHECK_API=/checks "eval-$1" eval-check "$3"; }
+          check origincloud-terraform tf 'tofu init -backend=false -input=false >/dev/null && terraform validate && eval-tofu-plan | grep "Plan: 1 to import, 0 to add, 0 to change, 0 to destroy"'
+          check origincloud-sdk go 'go mod init example.com/x && go get go.origincloud.eu/sdk && printf "package main\nimport _ \"go.origincloud.eu/sdk/pvs/v1beta1\"\nfunc main() {}\n" > main.go && go mod tidy && go build ./...'
+          check origincloud-sdk ts 'npm init -y >/dev/null && npm install @origincloud/core @origincloud/pvs && npm install -D typescript @types/node && echo "import { Client } from \"@origincloud/core\"; new Client();" > x.ts && npx tsc --noEmit --module nodenext --moduleResolution nodenext x.ts'
+          check origincloud-sdk rs 'cargo init --quiet --name x && cargo add --quiet origincloud-pvs origincloud-core anyhow && cargo add --quiet tokio --features full && cargo build --quiet'
 
       - name: Proxy image
         run: |

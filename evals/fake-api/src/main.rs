@@ -1,6 +1,7 @@
-//! A stand-in for Origin Cloud's API, for the evals of the `origin` skill:
-//! `scripts/eval.sh` runs the `origin` CLI against it instead of the
-//! platform, with no credentials.
+//! A stand-in for Origin Cloud's API, for the skills' evals:
+//! `scripts/eval.sh` runs the `origin` CLI, and the checks run the
+//! Terraform provider, against it instead of the platform, with no
+//! credentials.
 //!
 //! ```sh
 //! fake-api --world world.json --log requests.log --env endpoints.env
@@ -8,7 +9,11 @@
 //!
 //! It serves every service of the API on a port of its own, from one world
 //! of resources, and writes `ORIGINCLOUD_{SERVICE}_ENDPOINT=http://…` lines
-//! to `--env` once it listens. The world (see [`World`]) holds the
+//! to `--env` once it listens, as the CLI takes them. It serves every
+//! service on one more port too, `EVAL_ENDPOINT=http://…`, for a client
+//! that sends all its calls to one endpoint, as the provider's `endpoint`
+//! and the SDKs' endpoint option do: there, the collections a path names
+//! say whose service it is ([`world::service_of`]). The world (see [`World`]) holds the
 //! resources by their names, canned answers for methods it doesn't model,
 //! and operations already under way. Reads, lists, creates, updates,
 //! deletes and other methods on a resource behave as the API's standard
@@ -98,6 +103,17 @@ async fn main() -> Result<()> {
         ));
         servers.push(server);
     }
+    let all = Arc::clone(&state);
+    let server = FakeServer::start(move |request: Received| {
+        let state = Arc::clone(&all);
+        async move {
+            let service = world::service_of(&request.path).unwrap_or("location");
+            serve(&state, service, request).await
+        }
+    })
+    .await;
+    env.push_str(&format!("EVAL_ENDPOINT={}\n", server.url()));
+    servers.push(server);
     // Written whole, so that a reader never sees half of it.
     let partial = args.env.with_extension("partial");
     std::fs::write(&partial, env)?;
