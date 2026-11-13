@@ -23,8 +23,9 @@
 # (OpenTofu and the provider release for origincloud-terraform; Go, Node
 # and Rust with the SDK releases for origincloud-sdk; all of them as
 # clients.toml pins them, for use offline) and, with the skill, the skill.
-# Its only mount is the task's directory. Its network is a Docker network of its own
-# for the run, with no way out but a proxy (evals/container/proxy.sh) that
+# Its only mount is the task's directory. Its network is a Docker network
+# of its own for the run, with no way out but a proxy
+# (evals/container/proxy.sh) that
 # lets through HTTPS to the agent's model provider, api.anthropic.com or
 # api.openai.com. In there, and only there, it may run any command without
 # asking (Claude Code's bypassPermissions, Codex without its sandbox). Its
@@ -41,8 +42,9 @@
 # CODEX_HOME); the `origin` CLI is EVAL_ORIGIN, else the one on PATH, and
 # the toolchains are this machine's, with network access.
 #
-# A task with an `api` runs against a fake API (evals/fake-api): `api.world` names a world file next to evals.json, the
-# resources, canned answers and operations the fake serves, and the task's
+# A task with an `api` runs against a fake API (evals/fake-api):
+# `api.world` names a world file next to evals.json, the resources, canned
+# answers and operations the fake serves, and the task's
 # own `resources`, `responses` and `operations` are added to it, a resource
 # replacing the world's of the same name; `profile` replaces the world's
 # CLI profile (`default-project`, `default-zone`, …), `null` for none. The
