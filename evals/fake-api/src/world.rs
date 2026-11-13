@@ -314,6 +314,18 @@ impl State {
         lro: bool,
     ) -> Answer {
         let key = collection.rsplit('/').next().unwrap_or_default().to_owned();
+        // The parent, such as the instance of a volume attachment, must be
+        // there; a project, zone or region is taken as it is named.
+        if let Some((parent, _)) = collection.rsplit_once('/') {
+            let parent_collection = parent.rsplit('/').nth(1).unwrap_or_default();
+            if !matches!(
+                parent_collection,
+                "" | "projects" | "zones" | "regions" | "organizations"
+            ) && !self.resources.contains_key(parent)
+            {
+                return error(404, "NOT_FOUND", &format!("{parent} not found"));
+            }
+        }
         if let Err(answer) = self.check_references(&body) {
             return answer;
         }
@@ -735,6 +747,19 @@ mod tests {
         ));
         assert_eq!(status, 400);
         assert_eq!(e["error"]["details"][0]["reason"], "FAILED_PRECONDITION");
+    }
+
+    #[test]
+    fn a_create_under_a_parent_that_isnt_there_is_refused() {
+        let mut s = state(json!({ "resources": [{ "name": VOLUME, "state": "AVAILABLE" }] }));
+        let (status, _) = json(s.handle(
+            "compute",
+            "POST",
+            "/v1beta1/projects/p/zones/z/instances/web-1/volumeAttachments",
+            &[],
+            &format!(r#"{{"volume":"{VOLUME}"}}"#),
+        ));
+        assert_eq!(status, 404);
     }
 
     #[test]

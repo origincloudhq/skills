@@ -37,6 +37,9 @@ RUN arch="$(dpkg --print-architecture)" \
   && ./origin --version | grep -qF " ${ORIGIN_VERSION}"
 COPY --from=fake-api /src/target/release/fake-api /usr/local/bin/fake-api
 COPY evals/container/entrypoint.sh /usr/local/bin/eval-entrypoint
+# The entrypoint writes the `origin` the agent calls to /tmp/bin; a login
+# shell, which resets PATH, finds it here too.
+RUN ln -s /tmp/bin/origin /usr/local/bin/origin
 ENTRYPOINT ["/usr/local/bin/eval-entrypoint"]
 
 FROM without AS with

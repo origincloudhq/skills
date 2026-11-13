@@ -162,14 +162,24 @@ origin pvs wait-operation --operation "$op" --timeout 10m --output json
 the user started is waited on the same way, with the service that started
 it. A resource that is `CREATING` isn't usable yet: wait for its operation
 before the step that needs it. Every change takes
-`--request-id`: generate a UUID once (`uuidgen`) and pass it on the first
+`--request-id`: generate a UUID once (`uuidgen`, or
+`cat /proc/sys/kernel/random/uuid`) and pass it on the first
 try and on every retry of the same change, so that it happens once.
 
 **Deletes and one-way changes.** They refuse without `--yes` and print what
 they would do; the references list them per service under "Ask before".
-The refusal's re-run line is for the user. Read the resource and what
-holds or uses it, tell the user what changes and what is lost, and pass
-`--yes` only after they said yes to that resource in this conversation.
+The refusal's re-run line is for the user. Before asking:
+
+1. Read the resource with its `get-` command, such as
+   `origin pvs get-volume --volume <volume> --output json`.
+2. Find what holds or uses it: the instance a volume is attached to
+   (`origin compute list-volume-attachments --instance - --zone <zone> --volume <volume> --output json`),
+   the interfaces in a security group; the service's workflows say how.
+3. Tell the user the resource by its `name` and its `origin:name`, what
+   holds it, what changes and what is lost, and wait.
+
+Pass `--yes` only after they said yes to that resource in this
+conversation.
 
 **Errors.** A failed command exits 1 and prints, with `--output json`,
 `{"code": "failure", "description", "reason", "requestId"}`: report the
@@ -203,7 +213,9 @@ reference below links its service's guide.
 ## References
 
 One file per service: its commands with their flags, what to ask before,
-and the API's resources with their full names and fields.
+and the API's resources with their full names and fields. Where a service
+has workflows, read them before a task they cover: they hold the steps
+and the checks the commands alone don't show.
 
 <!-- BEGIN GENERATED references -->
 | Service | Reference | Resources |

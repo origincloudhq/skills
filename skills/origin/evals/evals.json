@@ -55,7 +55,7 @@
         },
         {
           "kind": "answer_matches",
-          "pattern": "(?i)(which|what) project|shop-prod.*shop-staging|shop-staging.*shop-prod",
+          "pattern": "(?i)(which|what)\\b[^.?\\n]*\\bproject|shop-prod.*shop-staging|shop-staging.*shop-prod",
           "why": "The agent asks which project to create it in."
         }
       ]
@@ -65,7 +65,7 @@
       "api": {
         "world": "worlds/shop.json"
       },
-      "prompt": "The Postgres data volume vol-pgdata is almost full. Grow it to 250 GiB.",
+      "prompt": "The Postgres data volume vol-pgdata in Origin Cloud is almost full. Grow it to 250 GiB.",
       "checks": [
         {
           "kind": "requests_include",
@@ -249,7 +249,7 @@
       "api": {
         "world": "worlds/shop.json"
       },
-      "prompt": "Let our CI service account ci-deployer launch and terminate instances in the shop-prod project, and nowhere else.",
+      "prompt": "In Origin Cloud, let our CI service account ci-deployer launch and terminate instances in the shop-prod project, and nowhere else.",
       "checks": [
         {
           "kind": "requests_include",
@@ -278,7 +278,7 @@
       "api": {
         "world": "worlds/shop.json"
       },
-      "prompt": "How much has the shop-prod project cost so far this month, and what's the biggest item?",
+      "prompt": "How much has the Origin Cloud project shop-prod cost so far this month, and what's the biggest item?",
       "checks": [
         {
           "kind": "requests_include",
@@ -360,7 +360,7 @@
           }
         ]
       },
-      "prompt": "Take a snapshot of vol-pgdata before I upgrade Postgres tonight.",
+      "prompt": "Take a snapshot of the Origin Cloud volume vol-pgdata before I upgrade Postgres tonight.",
       "checks": [
         {
           "kind": "requests_include",
