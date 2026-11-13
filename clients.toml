@@ -13,10 +13,8 @@ revision = "2ddd372ee51b92901c865ecba260c4c8b5cbea24"
 # its command tree comes from: "release" for the commands.json the release
 # carries, or a file of this repository.
 [cli]
-version = "1.18.0"
-# A stand-in made from origin 1.18.0's --help, until a release carries
-# commands.json: then this line becomes `commands = "release"`.
-commands = "generator/testdata/commands-1.18.0.json"
+version = "1.19.0"
+commands = "release"
 
 # The provider release the origincloud-terraform skill describes, by its
 # registry address; its schema is what `tofu providers schema -json` prints.

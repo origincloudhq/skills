@@ -4,7 +4,7 @@
 #
 #   docker build -f evals/container/Dockerfile --target with \
 #     --build-arg AGENT=claude --build-arg AGENT_VERSION=2.1.323 \
-#     --build-arg ORIGIN_VERSION=1.18.0 --build-arg SKILL=origin .
+#     --build-arg ORIGIN_VERSION=1.19.0 --build-arg SKILL=origin .
 
 # The fake API, from this repository's source.
 FROM rust:1.97.1-slim-trixie AS fake-api
