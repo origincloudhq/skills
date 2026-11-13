@@ -64,3 +64,36 @@ jobs:
 
       - name: Scripts
         run: shellcheck scripts/*.sh
+
+  # The containers scripts/eval.sh runs the agents in: they build, the
+  # `origin` release in them is the one clients.toml pins, and the proxy
+  # starts. The agents themselves run outside CI, with their credentials.
+  eval-containers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: 'actions/checkout@v4'
+
+      - name: Agent images
+        run: |
+          origin="$(sed -n '/^\[cli\]/,/^\[/s/^version = "\(.*\)"/\1/p' clients.toml)"
+          versions="$(sed -n 's/^readonly \(CLAUDE_CODE\|CODEX\)_VERSION="\(.*\)"/\1=\2/p' scripts/eval.sh)"
+          for agent in claude codex; do
+            case "${agent}" in
+              claude) version="$(sed -n 's/^CLAUDE_CODE=//p' <<< "${versions}")" ;;
+              codex) version="$(sed -n 's/^CODEX=//p' <<< "${versions}")" ;;
+            esac
+            docker build -f evals/container/Dockerfile --target with \
+              --build-arg AGENT="${agent}" --build-arg AGENT_VERSION="${version}" \
+              --build-arg ORIGIN_VERSION="${origin}" --build-arg SKILL=origin \
+              -t "eval-${agent}" .
+            docker run --rm --entrypoint /opt/origin/origin "eval-${agent}" --version
+          done
+
+      - name: Proxy image
+        run: |
+          docker build -f evals/container/proxy.Dockerfile -t eval-proxy .
+          docker run -d --name proxy -e EVAL_ALLOW=api.anthropic.com eval-proxy
+          sleep 2
+          docker logs proxy
+          test "$(docker inspect -f '{{.State.Running}}' proxy)" = true
