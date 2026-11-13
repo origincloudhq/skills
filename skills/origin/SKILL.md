@@ -8,7 +8,7 @@ description: >-
 license: Apache-2.0
 metadata:
   api-revision: "227636fb9bf7bc1081c983acff81ad5b0ac70d44"
-  cli-version: "1.18.0"
+  cli-version: "1.19.0"
 ---
 # Origin Cloud with the `origin` CLI
 
