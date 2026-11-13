@@ -115,9 +115,37 @@ showing that it asked before a replacement rather than applying it.
 skill installed or without it, and without Origin Cloud credentials:
 
 ```sh
-scripts/eval.sh --skill origincloud-terraform --agent claude
-scripts/eval.sh --skill origincloud-terraform --agent claude --without
+EVAL_CREDENTIALS=~/eval-credentials.env scripts/eval.sh --skill origin --agent claude
+EVAL_CREDENTIALS=~/eval-credentials.env scripts/eval.sh --skill origin --agent claude --without
 ```
+
+Each agent runs in a container (`evals/container/`) holding only the
+agent's CLI at the version `scripts/eval.sh` pins, the `origin` release
+`clients.toml` pins, the fake API and, with it, the skill. The task's
+directory is its only mount, and its network reaches the fake API and,
+through a proxy, the model provider's API, nothing else; only in there may
+the agent run commands without asking. Its credentials come from the file
+`EVAL_CREDENTIALS` names, mode 0600, as `KEY=VALUE` lines: an eval-only
+`CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY` for Claude Code, and
+`CODEX_API_KEY` or `OPENAI_API_KEY` for Codex. They reach the container as
+environment variables and are blanked out of the transcripts. CI builds
+the containers; the agents run outside it.
+
+The container carries what the `origin` skill's evals need. The Terraform
+and SDK skills' evals, which build Terraform, Go, Rust and TypeScript, run
+the agent on this machine with `--host`, in a home of its own, with its
+credentials in the environment.
+
+The `origin` skill's tasks run the real `origin` CLI against a fake API,
+`evals/fake-api`: a world of resources (`skills/origin/evals/worlds/`)
+that it reads, lists, creates, changes and deletes as the API does, with
+operations that take a moment, and a log of every request it received. A
+task's checks can then ask what the agent sent (`requests_include`,
+`requests_exclude`), such as no `DELETE` before the user said yes, or an
+attachment only after the volume's operation was done.
+
+`--regrade` runs no agent and checks a run's directory (`EVAL_OUT`) again,
+after a check changed.
 
 A change to a skill's hand-written parts says in its pull request how the
 evals came out, with and without the skill.
