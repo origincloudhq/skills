@@ -30,8 +30,8 @@
         {
           "kind": "files_match",
           "glob": "*.tf",
-          "pattern": "source *= *\"origincloudhq/origincloud\"",
-          "why": "The provider comes from its registry address."
+          "pattern": "source *= *\"(registry\\.(terraform\\.io|opentofu\\.org)/)?origincloudhq/origincloud\"",
+          "why": "The provider comes from its registry address, short or with the registry's host."
         },
         {
           "kind": "files_exclude",
