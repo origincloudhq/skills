@@ -123,6 +123,21 @@ generated, and the SDK retries what is safe to retry (reads, and calls with
 a `request_id`) with a growing delay. To retry a change yourself, keep its
 `request_id` and send it again.
 
+**Deletes and one-way changes.** Code that deletes, or makes a change the
+references mark **ask first** (growing a volume, which never shrinks back
+and is charged), is that change once it runs, and nothing in the SDK
+stops it. Being asked to write it, or to "run it", isn't the user's yes:
+the yes comes after they have heard what can't be undone. So:
+
+1. Write the program so that the change needs an explicit confirmation,
+   such as a `--yes` flag, and does nothing more than read without it.
+2. Read the resource first, by running the program without the flag or
+   with a get call (`get_volume`, `GetVolume`, `getVolume`): its size,
+   state and what it is attached to.
+3. Tell the user the resource by its name, what will change and what is
+   lost or charged, and wait. Run the change only after they said yes to
+   that resource in this conversation.
+
 **Errors.** An API error carries its code and the correlation ID: Rust
 `origincloud_core::Error` (`reason()`, and the `request_id` of its
 `ApiError`), Go `*core.Error` (`Reason`, `RequestID`, `core.ReasonOf(err)`),

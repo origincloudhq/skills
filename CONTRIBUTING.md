@@ -117,11 +117,13 @@ skill installed or without it, and without Origin Cloud credentials:
 ```sh
 EVAL_CREDENTIALS=~/eval-credentials.env scripts/eval.sh --skill origin --agent claude
 EVAL_CREDENTIALS=~/eval-credentials.env scripts/eval.sh --skill origin --agent claude --without
+EVAL_CREDENTIALS=~/eval-credentials.env scripts/eval.sh --skill origincloud-terraform --agent codex
 ```
 
 Each agent runs in a container (`evals/container/`) holding only the
 agent's CLI at the version `scripts/eval.sh` pins, the `origin` release
-`clients.toml` pins, the fake API and, with it, the skill. The task's
+`clients.toml` pins, the fake API, the toolchains of the skill's tasks
+and, with it, the skill. The task's
 directory is its only mount, and its network reaches the fake API and,
 through a proxy, the model provider's API, nothing else; only in there may
 the agent run commands without asking. Its credentials come from the file
@@ -131,20 +133,50 @@ the agent run commands without asking. Its credentials come from the file
 environment variables and are blanked out of the transcripts. CI builds
 the containers; the agents run outside it.
 
-The container carries what the `origin` skill's evals need. The Terraform
-and SDK skills' evals, which build Terraform, Go, Rust and TypeScript, run
-the agent on this machine with `--host`, in a home of its own, with its
-credentials in the environment.
+The toolchains are in the image, at the releases `clients.toml` pins, and
+work without the network:
 
-The `origin` skill's tasks run the real `origin` CLI against a fake API,
-`evals/fake-api`: a world of resources (`skills/origin/evals/worlds/`)
+- `origincloud-terraform`: OpenTofu (which `terraform` names too) and the
+  provider release, which `tofu init` installs from a mirror in the image;
+- `origincloud-sdk`: Go, with the Go SDK and the modules it needs in a
+  module proxy on disk; Node with the TypeScript SDK's packages, TypeScript
+  and Node's types in a registry on `127.0.0.1:4873`
+  (`evals/container/npm-mirror.mjs`); and Rust, with the Rust SDK's crates,
+  Tokio and anyhow in Cargo's registry cache. A package beyond those isn't
+  there, as on a machine without a network.
+
+`--host` runs the agent on this machine instead, in a home of its own, with
+its credentials in the environment and this machine's toolchains.
+
+A task with an `api` runs the real `origin` CLI against a fake API,
+`evals/fake-api`: a world of resources (`skills/{skill}/evals/worlds/`)
 that it reads, lists, creates, changes and deletes as the API does, with
 operations that take a moment, and a log of every request it received. A
 task's checks can then ask what the agent sent (`requests_include`,
 `requests_exclude`), such as no `DELETE` before the user said yes, or an
-attachment only after the volume's operation was done.
+attachment only after the volume's operation was done. The fake API serves
+each service on a port of its own, as the CLI takes them
+(`ORIGINCLOUD_{SERVICE}_ENDPOINT`), and all of them on one more,
+`EVAL_ENDPOINT`, for a client that takes one endpoint, as the provider's
+`endpoint` does. In the agent's container, the platform's hosts
+(`pvs.origincloudapis.eu`, `pvs.eu-central1.origincloudapis.eu`, …) are
+the fake API too, through TLS with a certificate from a CA the image
+trusts (`evals/bin/eval-fake-api`), and the `origin` CLI's login session is
+where the provider and the SDKs look for one: an agent's own `tofu plan`,
+or the program it wrote, calls the fake API as it would call the platform,
+and its requests are in the log.
+
+A `run` check runs in a container of the same image, without a network,
+through `evals/bin/eval-check`. A task with an `api` gives the check a fake
+API of its own, started afresh from the task's world, whatever the agent
+did to the one it called, and `EVAL_ENDPOINT` names its one endpoint for
+every service. `eval-tofu-plan` plans a Terraform configuration against it,
+with the provider's `endpoint` set for the plan alone: the Terraform tasks
+check that the agent's configuration validates, plans without errors, and,
+for an import, plans to change nothing.
 
 `--regrade` runs no agent and checks a run's directory (`EVAL_OUT`) again,
+in the run's image (on this machine with `--host`),
 after a check changed.
 
 A change to a skill's hand-written parts says in its pull request how the
@@ -167,7 +199,7 @@ cargo test --workspace
 ```
 
 The generator also checks every `SKILL.md`'s frontmatter against the
-specification. CI also checks the scripts with shellcheck.
+specification. CI also checks the scripts, the evals' too, with shellcheck.
 
 ## License
 

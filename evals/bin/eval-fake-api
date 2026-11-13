@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+#
+# Runs the fake API for an eval's agent (scripts/eval.sh), its arguments
+# fake-api's, and once it listens, TLS on port 443 in front of its one
+# endpoint for every service, with the image's certificate for
+# *.origincloudapis.eu: with the platform's hosts mapped to 127.0.0.1, the
+# provider, the SDKs and the `origin` CLI reach it at the addresses they
+# use on the platform. Port 443 needs net.ipv4.ip_unprivileged_port_start=0
+# for a user other than root.
+set -euo pipefail
+
+env_file=""
+args=("$@")
+for ((i = 0; i < ${#args[@]}; i++)); do
+  [[ "${args[i]}" == --env ]] && env_file="${args[i + 1]:-}"
+done
+[[ -n "${env_file}" ]] || { echo "usage: eval-fake-api --world FILE --log FILE --env FILE" >&2; exit 2; }
+
+fake-api "$@" &
+api=$!
+for _ in $(seq 300); do
+  [[ -s "${env_file}" ]] && break
+  sleep 0.1
+done
+endpoint="$(sed -n 's/^EVAL_ENDPOINT=http:\/\/127\.0\.0\.1:\([0-9]*\)$/\1/p' "${env_file}")"
+[[ -n "${endpoint}" ]] || { echo "the fake API wrote no EVAL_ENDPOINT" >&2; exit 1; }
+socat "OPENSSL-LISTEN:443,reuseaddr,fork,cert=/opt/eval-tls/server.crt,key=/opt/eval-tls/server.key,verify=0" \
+  "TCP:127.0.0.1:${endpoint}" &
+trap 'kill "${api}" $! 2> /dev/null || true' EXIT TERM INT
+wait "${api}"

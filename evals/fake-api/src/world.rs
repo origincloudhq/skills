@@ -517,6 +517,77 @@ impl State {
     }
 }
 
+/// The service of each collection of the API's resource names, such as
+/// `volumes` in `projects/{project}/zones/{zone}/volumes/{volume}`: a test
+/// checks it against the names the references give.
+const COLLECTIONS: &[(&str, &str)] = &[
+    ("billingAccounts", "billing"),
+    ("billingCountries", "billing"),
+    ("billingInfo", "billing"),
+    ("spendLimit", "billing"),
+    ("imageFamilies", "compute"),
+    ("images", "compute"),
+    ("instanceTypes", "compute"),
+    ("instances", "compute"),
+    ("keyPairs", "compute"),
+    ("volumeAttachments", "compute"),
+    ("hostedZones", "dns"),
+    ("recordSets", "dns"),
+    ("vpcAttachments", "dns"),
+    ("auditLogEntries", "iam"),
+    ("federatedCredentials", "iam"),
+    ("permissions", "iam"),
+    ("roleBindings", "iam"),
+    ("roles", "iam"),
+    ("serviceAccounts", "iam"),
+    ("users", "iam"),
+    ("regions", "location"),
+    ("zones", "location"),
+    ("aclAssociations", "network"),
+    ("acls", "network"),
+    ("associations", "network"),
+    ("dnsPolicies", "network"),
+    ("dnsPolicyAssociations", "network"),
+    ("floatingIps", "network"),
+    ("internetGateways", "network"),
+    ("natGateways", "network"),
+    ("networkInterfaces", "network"),
+    ("routeTableAssociations", "network"),
+    ("routeTables", "network"),
+    ("routes", "network"),
+    ("rules", "network"),
+    ("securityGroupAssociations", "network"),
+    ("securityGroups", "network"),
+    ("subnets", "network"),
+    ("vpcs", "network"),
+    ("snapshots", "pvs"),
+    ("storageClasses", "pvs"),
+    ("volumes", "pvs"),
+    ("organizations", "resourcemanager"),
+    ("projects", "resourcemanager"),
+    ("quota", "resourcemanager"),
+    ("cases", "support"),
+    ("messages", "support"),
+];
+
+/// The service a request's path, `/v1beta1/projects/p/zones/z/volumes/v`,
+/// is for: the service of the last collection it names that is one
+/// service's, such as `volumes`; an operation's, `…/operations/op`, is the
+/// one of the collections before it. `None` for a path naming none.
+pub fn service_of(path: &str) -> Option<&'static str> {
+    let path = decode(path);
+    let rest = path.strip_prefix('/')?.split_once('/')?.1;
+    let rest = match rest.rsplit_once(':') {
+        Some((target, verb)) if !verb.contains('/') => target,
+        _ => rest,
+    };
+    rest.split('/')
+        .step_by(2)
+        .filter_map(|c| COLLECTIONS.iter().find(|(name, _)| *name == c))
+        .map(|(_, service)| *service)
+        .last()
+}
+
 /// An operation as the API shows it: its result only once it is done.
 fn public(op: &Value) -> Value {
     let mut op = op.clone();
@@ -802,6 +873,48 @@ mod tests {
             r#"{"member":"serviceAccount:sa-1","role":"roles/viewer"}"#,
         ));
         assert_eq!(again["name"], name.as_str());
+    }
+
+    /// Every resource name the generated references give, by its service's
+    /// host, is that service's for the one endpoint serving them all; so
+    /// are its lists, creates, custom methods and operations.
+    #[test]
+    fn a_path_names_its_service() {
+        let references = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../skills/origincloud-sdk/references"
+        );
+        let host = Regex::new(r"//([a-z]+)\.origincloudapis\.eu/([A-Za-z0-9_/{}]+)").unwrap();
+        let variable = Regex::new(r"\{[a-z_]+\}").unwrap();
+        let mut checked = 0;
+        for entry in std::fs::read_dir(references).unwrap() {
+            let text = std::fs::read_to_string(entry.unwrap().path()).unwrap();
+            for c in host.captures_iter(&text) {
+                let (service, pattern) = (&c[1], &c[2]);
+                let name = variable.replace_all(pattern, "x");
+                let mut paths = vec![format!("/v1beta1/{name}"), format!("/v1beta1/{name}:start")];
+                // A collection's list and create, unless the name is a
+                // singleton's, such as a project's `billingInfo`.
+                if name.split('/').count().is_multiple_of(2) {
+                    let (collection, _) = name.rsplit_once('/').unwrap();
+                    paths.push(format!("/v1beta1/{collection}"));
+                }
+                for path in paths {
+                    assert_eq!(service_of(&path), Some(service), "{path}");
+                }
+                checked += 1;
+            }
+        }
+        assert!(checked > 40, "only {checked} names in {references}");
+        assert_eq!(
+            service_of("/v1beta1/projects/p/zones/z/operations/op-1:wait"),
+            Some("location")
+        );
+        assert_eq!(
+            service_of("/v1beta1/projects/p:queryCost"),
+            Some("resourcemanager")
+        );
+        assert_eq!(service_of("/nothing"), None);
     }
 
     #[test]

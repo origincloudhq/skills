@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 #
-# Prepares an eval's agent container, then runs the agent (its arguments):
-# a home of its own, a login session and profile for the `origin` CLI that
-# exist only here, an `origin` on PATH that calls the fake API, and, with
-# the skill, the skill installed where the agent finds a project's skills.
+# Prepares an eval's agent container, then runs the agent, or a check (its
+# arguments): a home of its own, a login session and profile for the
+# `origin` CLI that exist only here, in the places the CLI, the provider and
+# the SDKs read them from, an `origin` on PATH that calls the fake API, the
+# npm registry of the image's packages where it has one, and, with the
+# skill, the skill installed where the agent finds a project's skills.
 #
 # Reads ORIGIN_EVAL_ENDPOINTS (the fake API's ORIGINCLOUD_*_ENDPOINT lines),
 # ORIGIN_EVAL_PROFILE (the profile, a JSON object) and EVAL_SKILLS_DIR
@@ -11,19 +13,19 @@
 set -euo pipefail
 
 export HOME=/tmp/home
-mkdir -p "${HOME}" /tmp/bin /tmp/origin/config /tmp/origin/data/origincloud
+mkdir -p "${HOME}/.config" "${HOME}/.local/share/origincloud" /tmp/bin
 
 if [[ -n "${ORIGIN_EVAL_ENDPOINTS:-}" ]]; then
   printf '%s\n' '{"version":1,"access_token":"oc_eval_7Hq2Lx9VbN4mRt8","expires":"2099-01-01T00:00:00Z","refresh_token":"oc_eval_refresh_K3d9Qw","refresh_expires":"2099-01-01T00:00:00Z","token_type":"Bearer"}' \
-    > /tmp/origin/data/origincloud/session.json
-  chmod 600 /tmp/origin/data/origincloud/session.json
+    > "${HOME}/.local/share/origincloud/session.json"
+  chmod 600 "${HOME}/.local/share/origincloud/session.json"
   while IFS=$'\t' read -r key value; do
     [[ -n "${key}" ]] || continue
-    XDG_CONFIG_HOME=/tmp/origin/config /opt/origin/origin config profile-set "${key}" "${value}" > /dev/null
+    XDG_CONFIG_HOME="${HOME}/.config" /opt/origin/origin config profile-set "${key}" "${value}" > /dev/null
   done < <(jq -r '(. // {}) | to_entries[] | [.key, .value] | @tsv' <<< "${ORIGIN_EVAL_PROFILE:-null}")
   {
     echo '#!/usr/bin/env bash'
-    echo 'export XDG_CONFIG_HOME=/tmp/origin/config XDG_DATA_HOME=/tmp/origin/data'
+    echo "export XDG_CONFIG_HOME=${HOME}/.config XDG_DATA_HOME=${HOME}/.local/share"
     echo 'unset HTTPS_PROXY https_proxy HTTP_PROXY http_proxy'
     sed -n 's/^\(ORIGINCLOUD_[A-Z]*_ENDPOINT=http:\/\/127\.0\.0\.1:[0-9]*\)$/export \1/p' <<< "${ORIGIN_EVAL_ENDPOINTS}"
     cat <<'WRAPPER'
@@ -38,6 +40,16 @@ WRAPPER
   chmod 755 /tmp/bin/origin
 fi
 export PATH="/tmp/bin:${PATH}"
+
+# The image's npm packages (evals/container/npm-mirror.mjs), for npm on
+# 127.0.0.1:4873.
+if [[ -d /opt/npm ]]; then
+  node /usr/local/lib/eval/npm-mirror.mjs serve /opt/npm 4873 > /dev/null 2>&1 &
+  for _ in $(seq 100); do
+    curl -fs -o /dev/null http://127.0.0.1:4873/typescript && break
+    sleep 0.1
+  done
+fi
 
 if [[ -d /opt/skill && -n "${EVAL_SKILLS_DIR:-}" ]]; then
   mkdir -p "/work/${EVAL_SKILLS_DIR}"

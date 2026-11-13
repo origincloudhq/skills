@@ -4,10 +4,11 @@
 # agent, with the skill installed or without it, and checks what the agent
 # did:
 #
-#   scripts/eval.sh --skill origin --agent claude|codex [--without] [--task ID] [--host]
+#   scripts/eval.sh --skill NAME --agent claude|codex [--without] [--task ID] [--host]
 #
 # With --regrade, it runs no agent and checks again what a run left under
-# EVAL_OUT, after a change to the checks.
+# EVAL_OUT, after a change to the checks, in the same image as the run (or
+# on this machine with --host).
 #
 # Each task runs in a directory of its own, holding the task's `files`; with
 # the skill, it is installed where the agent finds a project's skills
@@ -18,9 +19,13 @@
 #
 # By default the agent runs in a container (evals/container/Dockerfile)
 # that holds only the agent's CLI at a pinned version, the `origin` release
-# clients.toml pins, the fake API and, with the skill, the skill. Its only
-# mount is the task's directory. Its network is a Docker network of its own
-# for the run, with no way out but a proxy (evals/container/proxy.sh) that
+# clients.toml pins, the fake API, the toolchains the skill's tasks need
+# (OpenTofu and the provider release for origincloud-terraform; Go, Node
+# and Rust with the SDK releases for origincloud-sdk; all of them as
+# clients.toml pins them, for use offline) and, with the skill, the skill.
+# Its only mount is the task's directory. Its network is a Docker network
+# of its own for the run, with no way out but a proxy
+# (evals/container/proxy.sh) that
 # lets through HTTPS to the agent's model provider, api.anthropic.com or
 # api.openai.com. In there, and only there, it may run any command without
 # asking (Claude Code's bypassPermissions, Codex without its sandbox). Its
@@ -34,25 +39,32 @@
 # of its own, with its usual permission prompts and its credentials from the
 # environment (ANTHROPIC_API_KEY, CLAUDE_CODE_OAUTH_TOKEN or a
 # CLAUDE_CONFIG_DIR logged in for the evals; CODEX_API_KEY or such a
-# CODEX_HOME); the `origin` CLI is EVAL_ORIGIN, else the one on PATH. The
-# container only carries what the `origin` skill's evals need, so the other
-# skills' evals, which build Terraform, Go, Rust and TypeScript, run with
-# --host.
+# CODEX_HOME); the `origin` CLI is EVAL_ORIGIN, else the one on PATH, and
+# the toolchains are this machine's, with network access.
 #
-# A task with an `api` runs the `origin` CLI against a fake API
-# (evals/fake-api): `api.world` names a world file next to evals.json, the
-# resources, canned answers and operations the fake serves, and the task's
+# A task with an `api` runs against a fake API (evals/fake-api):
+# `api.world` names a world file next to evals.json, the resources, canned
+# answers and operations the fake serves, and the task's
 # own `resources`, `responses` and `operations` are added to it, a resource
 # replacing the world's of the same name; `profile` replaces the world's
 # CLI profile (`default-project`, `default-zone`, …), `null` for none. The
 # agent finds an `origin` on its PATH that is the real CLI with a login
 # session of its own, sending every call to the fake API; the notice that
 # the CLI calls a test server is left out of its output, so the agent sees
-# what it would see on the platform.
+# what it would see on the platform. In the container, the platform's
+# hosts are the fake API as well, through TLS that evals/bin/eval-fake-api
+# terminates with a certificate the image trusts, and the CLI's login
+# session is where the provider and the SDKs find it: what the agent
+# builds calls the fake API too.
 #
 # Then each check of the task runs in that directory:
 #
-# - `run`: the command succeeds;
+# - `run`: the command succeeds, run by evals/bin/eval-check in a container
+#   of the same image with no network (on this machine with --host). A task
+#   with an `api` gives it a fake API of its own, started afresh from the
+#   task's world, whose one endpoint for every service is EVAL_ENDPOINT:
+#   `eval-tofu-plan` (evals/bin/) plans a Terraform configuration against
+#   it;
 # - `files_match` / `files_exclude`: a file matching `glob` has / no file
 #   has a line matching the extended regular expression `pattern`;
 # - `transcript_includes` / `transcript_excludes`: the agent's transcript
@@ -70,8 +82,9 @@
 # without --host) with the prompt as its last argument and the transcript
 # on its standard output. EVAL_TIMEOUT bounds each task (default 900 s).
 #
-# Needs jq; without --host, Docker; with --host, the agent's CLI, and for
-# the `origin` skill's evals the `origin` CLI and cargo.
+# Needs jq; without --host, Docker; with --host, the agent's CLI, cargo,
+# the toolchains of the skill's checks, and for a task with an `api` the
+# `origin` CLI.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -118,14 +131,15 @@ fi
 
 if [[ "${regrade}" == true ]]; then
   [[ -n "${EVAL_OUT:-}" ]] || { echo "--regrade needs EVAL_OUT, the run's directory" >&2; exit 2; }
-  host=true
 fi
 out="${EVAL_OUT:-$(mktemp -d)}"
 mkdir -p "${out}"
 variant="$([[ "${with}" == true ]] && echo with || echo without)"
-pinned="$(sed -n '/^\[cli\]/,/^\[/s/^version = "\(.*\)"/\1/p' "${ROOT}/clients.toml")"
+# A key's value in a section of clients.toml.
+pin() { sed -n "/^\[$1\]/,/^\[/s/^$2 = \"\(.*\)\"/\1/p" "${ROOT}/clients.toml"; }
+pinned="$(pin cli version)"
 needs_api=false
-if jq -e 'any(.tasks[]; has("api"))' "${evals}" > /dev/null && [[ "${regrade}" == false ]]; then
+if jq -e 'any(.tasks[]; has("api"))' "${evals}" > /dev/null; then
   needs_api=true
 fi
 
@@ -150,6 +164,19 @@ run="" image="" credentials=()
 declare -A secret=()
 if [[ "${host}" == false ]]; then
   command -v docker > /dev/null || { echo "no docker: install it, or run with --host" >&2; exit 2; }
+  image="origincloud-skills-eval-${skill}-${agent}:${variant}"
+  echo "building ${image} (${agent} ${version}, origin ${pinned})" >&2
+  docker build --quiet -f "${ROOT}/evals/container/Dockerfile" --target "${variant}" \
+    --build-arg AGENT="${agent}" --build-arg AGENT_VERSION="${version}" \
+    --build-arg ORIGIN_VERSION="${pinned}" --build-arg SKILL="${skill}" \
+    --build-arg PROVIDER_SOURCE="$(pin terraform source)" \
+    --build-arg PROVIDER_VERSION="$(pin terraform version)" \
+    --build-arg SDK_GO_VERSION="$(pin sdk go)" \
+    --build-arg SDK_RUST_VERSION="$(pin sdk rust)" \
+    --build-arg SDK_TYPESCRIPT_VERSION="$(pin sdk typescript)" \
+    -t "${image}" "${ROOT}" > /dev/null
+fi
+if [[ "${host}" == false && "${regrade}" == false ]]; then
 
   # The credentials, read from their file into this shell only: the
   # container gets them by name (`docker run -e KEY`), never on a command
@@ -170,12 +197,6 @@ if [[ "${host}" == false ]]; then
   [[ ${#credentials[@]} -gt 0 ]] || {
     echo "${file} has none of ${credential_keys[*]} for ${agent}" >&2; exit 2; }
 
-  image="origincloud-skills-eval-${agent}:${variant}"
-  echo "building ${image} (${agent} ${version}, origin ${pinned})" >&2
-  docker build --quiet -f "${ROOT}/evals/container/Dockerfile" --target "${variant}" \
-    --build-arg AGENT="${agent}" --build-arg AGENT_VERSION="${version}" \
-    --build-arg ORIGIN_VERSION="${pinned}" --build-arg SKILL="${skill}" \
-    -t "${image}" "${ROOT}" > /dev/null
   docker build --quiet -f "${ROOT}/evals/container/proxy.Dockerfile" \
     -t origincloud-skills-eval-proxy "${ROOT}" > /dev/null
 
@@ -191,7 +212,7 @@ if [[ "${host}" == false ]]; then
 fi
 
 # --- On the host: the CLI and the fake API. --------------------------------
-fake_api="" origin_bin=""
+fake_api="" origin_bin="" check_path="${ROOT}/evals/bin:${PATH}"
 if [[ "${host}" == true ]]; then
   # The toolchains stay where they are installed when the home changes.
   for name in RUSTUP_HOME CARGO_HOME GOPATH; do
@@ -204,12 +225,14 @@ if [[ "${host}" == true ]]; then
       export "${name}=${default}"
     fi
   done
-  if [[ "${needs_api}" == true ]]; then
+  if [[ "${needs_api}" == true && "${regrade}" == false ]]; then
     origin_bin="${EVAL_ORIGIN:-$(command -v origin || true)}"
     [[ -x "${origin_bin}" ]] || { echo "no origin CLI: set EVAL_ORIGIN" >&2; exit 2; }
     if ! "${origin_bin}" --version | grep -qF " ${pinned}"; then
       echo "warning: ${origin_bin} isn't origin ${pinned}, the release the skill describes" >&2
     fi
+  fi
+  if [[ "${needs_api}" == true ]]; then
     fake_api="${EVAL_FAKE_API:-}"
     if [[ -z "${fake_api}" ]]; then
       fake_api="$(cd "${ROOT}" && cargo build --quiet --locked -p origincloud-skills-fake-api \
@@ -303,16 +326,32 @@ run_on_host() {
   stop_fake_api
 }
 
+# The platform's hosts, each service's and its region's front door
+# (pvs.origincloudapis.eu, pvs.eu-central1.origincloudapis.eu), which the
+# fake API's container maps to itself: the image's certificate names them,
+# for the region the worlds have. The services are those the references
+# have.
+api_hosts=() no_proxy="127.0.0.1,localhost,.origincloudapis.eu"
+for reference in "${ROOT}/skills/origin/references/"*.md; do
+  service="$(basename "${reference}" .md)"
+  [[ "${service}" != *-* ]] || continue
+  api_hosts+=(--add-host "${service}.origincloudapis.eu:127.0.0.1"
+    --add-host "${service}.eu-central1.origincloudapis.eu:127.0.0.1")
+done
+
 # Runs the agent in its container. The fake API runs in a container of its
 # own, from the same image, whose network the agent's container shares, so
-# that the agent reaches it on 127.0.0.1 and nothing else but the proxy.
+# that the agent reaches it on 127.0.0.1, and at the platform's hosts
+# through TLS on port 443 (evals/bin/eval-fake-api), and nothing else but
+# the proxy.
 run_in_container() {
   local dir="$1" prompt="$2" has_api="$3" id="$4" net endpoints="" profile="null" name
   name="${run}-$(tr -c 'a-z0-9-' '-' <<< "${id}" | head -c 40)"
   net=(--network "${run}")
   if [[ "${has_api}" == true ]]; then
     docker run -d --name "${name}-api" --network "${run}" --user "$(id -u):$(id -g)" \
-      -v "${dir}/api:/api" --entrypoint /usr/local/bin/fake-api "${image}" \
+      --sysctl net.ipv4.ip_unprivileged_port_start=0 "${api_hosts[@]}" \
+      -v "${dir}/api:/api" --entrypoint /usr/local/bin/eval-fake-api "${image}" \
       --world /api/world.json --log /api/requests.log --env /api/endpoints.env > /dev/null
     cleanup=("docker rm -f ${name}-api" "${cleanup[@]}")
     docker logs -f "${name}-api" > "${dir}/api/stderr.log" 2>&1 &
@@ -328,7 +367,7 @@ run_in_container() {
     timeout "${timeout}" docker run --rm --name "${name}" "${net[@]}" \
       --user "$(id -u):$(id -g)" -v "${dir}/work:/work" \
       -e HTTPS_PROXY="http://${run}-proxy:3128" -e https_proxy="http://${run}-proxy:3128" \
-      -e NO_PROXY=127.0.0.1,localhost -e no_proxy=127.0.0.1,localhost \
+      -e NO_PROXY="${no_proxy}" -e no_proxy="${no_proxy}" \
       -e CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 -e DISABLE_AUTOUPDATER=1 \
       -e ORIGIN_EVAL_ENDPOINTS -e ORIGIN_EVAL_PROFILE -e EVAL_SKILLS_DIR \
       "${credentials[@]}" "${image}" "${command[@]}" "${prompt}"
@@ -345,6 +384,40 @@ run_in_container() {
       'for my $k (split / /, $ENV{EVAL_REDACT}) { my $v = $ENV{$k}; s/\Q$v\E/[redacted]/g if length $v }' \
       "${dir}/transcript.jsonl" "${dir}/stderr.log"
   )
+}
+
+# The task's files matching `glob` that have a line matching `pattern`,
+# leaving out the installed skill and what tools download or build
+# (node_modules, .terraform, target): none when no file matches the glob.
+matching_files() {
+  local dir="$1" glob="$2" pattern="$3"
+  find "${dir}/work" \( -path "${dir}/work/${skills_dir}" -o -name node_modules -o -name .terraform \
+    -o -name target \) -prune -o -type f -name "${glob}" -print0 \
+    | xargs -0 -r grep -lE -- "${pattern}" || true
+}
+
+# Runs a task's `run` check, the `n`th, with evals/bin/eval-check: in a
+# container of the run's image without a network, or on the host, with a
+# fake API of its own when the task has a world, in ${dir}/checks/{n}/.
+run_check() {
+  local dir="$1" n="$2" line="$3" checks
+  checks="${dir}/checks/${n}"
+  rm -rf "${checks}"
+  mkdir -p "${checks}"
+  if [[ -f "${dir}/api/world.json" ]]; then
+    cp "${dir}/api/world.json" "${checks}/world.json"
+  fi
+  if [[ "${host}" == true ]]; then
+    (
+      cd "${dir}/work"
+      PATH="${check_path}" EVAL_CHECK_API="${checks}" EVAL_FAKE_API="${fake_api}" \
+        eval-check "${line}"
+    )
+  else
+    docker run --rm --network none --user "$(id -u):$(id -g)" \
+      -v "${dir}/work:/work" -v "${checks}:/checks" -e EVAL_CHECK_API=/checks \
+      "${image}" eval-check "${line}"
+  fi
 }
 
 while read -r task; do
@@ -386,8 +459,10 @@ while read -r task; do
   requests="${dir}/api/requests.log"
   [[ -f "${requests}" ]] || requests=/dev/null
 
-  failed=()
+  failed=() n=0
+  : > "${dir}/checks.log"
   while read -r check; do
+    n=$((n + 1))
     kind="$(jq -r .kind <<< "${check}")"
     pattern="$(jq -r '.pattern // ""' <<< "${check}")"
     glob="$(jq -r '.glob // "*"' <<< "${check}")"
@@ -395,13 +470,11 @@ while read -r task; do
     ok=false
     case "${kind}" in
       run)
-        if (cd "${dir}/work" && bash -c "$(jq -r .command <<< "${check}")") >> "${dir}/checks.log" 2>&1; then ok=true; fi ;;
+        if run_check "${dir}" "${n}" "$(jq -r .command <<< "${check}")" >> "${dir}/checks.log" 2>&1 < /dev/null; then ok=true; fi ;;
       files_match)
-        if find "${dir}/work" -path "${dir}/work/${skills_dir}" -prune -o -type f -name "${glob}" -print0 \
-          | xargs -0 -r grep -qE -- "${pattern}"; then ok=true; fi ;;
+        if [[ -n "$(matching_files "${dir}" "${glob}" "${pattern}")" ]]; then ok=true; fi ;;
       files_exclude)
-        if ! find "${dir}/work" -path "${dir}/work/${skills_dir}" -prune -o -type f -name "${glob}" -print0 \
-          | xargs -0 -r grep -qE -- "${pattern}"; then ok=true; fi ;;
+        if [[ -z "$(matching_files "${dir}" "${glob}" "${pattern}")" ]]; then ok=true; fi ;;
       transcript_includes)
         if grep -qE -- "${pattern}" "${dir}/transcript.jsonl"; then ok=true; fi ;;
       transcript_excludes)
