@@ -7,7 +7,7 @@
 # [[no_tool]] list says which methods an agent isn't handed. API_REVISION
 # is the API revision this commit was generated from.
 [mcp]
-revision = "75387df9e084c0ab5e447d52b46acd613a9e72f4"
+revision = "2ddd372ee51b92901c865ecba260c4c8b5cbea24"
 
 # The `origin` CLI release the `origin` skill describes. `commands` is where
 # its command tree comes from: "release" for the commands.json the release
