@@ -137,6 +137,9 @@ jobs:
           check origincloud-sdk go 'go mod init example.com/x && go get go.origincloud.eu/sdk && printf "package main\nimport _ \"go.origincloud.eu/sdk/pvs/v1beta1\"\nfunc main() {}\n" > main.go && go mod tidy && go build ./...'
           check origincloud-sdk ts 'npm init -y >/dev/null && npm install @origincloud/core @origincloud/pvs && npm install -D typescript @types/node && echo "import { Client } from \"@origincloud/core\"; new Client();" > x.ts && npx tsc --noEmit --module nodenext --moduleResolution nodenext x.ts'
           check origincloud-sdk rs 'cargo init --quiet --name x && cargo add --quiet origincloud-pvs origincloud-core anyhow && cargo add --quiet tokio --features full && cargo build --quiet'
+          # A login shell, as Codex runs commands in, finds them too.
+          check origincloud-sdk go 'bash -lc "go version && cargo --version && node --version"'
+          check origincloud-terraform tf 'bash -lc "tofu version && terraform version"'
 
       - name: Proxy image
         run: |

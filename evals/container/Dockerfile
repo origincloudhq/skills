@@ -97,7 +97,10 @@ RUN apt-get update \
 # Go, and a module proxy on disk holding the Go SDK and every module it
 # needs: `go get go.origincloud.eu/sdk` finds the pinned release, and only
 # it.
+# A login shell, as Codex runs commands in, resets PATH: the toolchains'
+# commands are in /usr/local/bin too.
 COPY --from=go /usr/local/go /usr/local/go
+RUN ln -s /usr/local/go/bin/go /usr/local/go/bin/gofmt /usr/local/bin/
 ENV PATH=/usr/local/go/bin:${PATH} GOTOOLCHAIN=local
 COPY evals/container/seed/go /tmp/seed-go
 RUN cd /tmp/seed-go \
@@ -130,7 +133,8 @@ RUN cd /tmp/seed-rust \
   && sed -i "s/SDK_RUST_VERSION/${SDK_RUST_VERSION}/" Cargo.toml \
   && cargo build --quiet \
   && rm -rf /tmp/seed-rust \
-  && chmod -R a+rwX /usr/local/cargo
+  && chmod -R a+rwX /usr/local/cargo \
+  && ln -s /usr/local/cargo/bin/* /usr/local/bin/
 ENV CARGO_NET_OFFLINE=true
 
 # --- The agent, the CLI and the fake API. ----------------------------------
