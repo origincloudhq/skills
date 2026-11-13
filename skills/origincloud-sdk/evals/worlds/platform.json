@@ -1,0 +1,172 @@
+{
+  "zone": "eu-central1-az1",
+  "profile": {
+    "default-project": "my-project-123",
+    "default-zone": "eu-central1-az1"
+  },
+  "resources": [
+    {
+      "name": "regions/eu-central1",
+      "displayName": "EU Central 1",
+      "zones": [
+        "zones/eu-central1-az1",
+        "zones/eu-central1-az2"
+      ]
+    },
+    {
+      "name": "zones/eu-central1-az1",
+      "region": "regions/eu-central1",
+      "services": [
+        "compute",
+        "network",
+        "pvs"
+      ],
+      "displayName": "EU Central 1, zone 1"
+    },
+    {
+      "name": "zones/eu-central1-az2",
+      "region": "regions/eu-central1",
+      "services": [
+        "compute",
+        "network",
+        "pvs"
+      ],
+      "displayName": "EU Central 1, zone 2"
+    },
+    {
+      "name": "organizations/org-acme",
+      "displayName": "Acme GmbH",
+      "state": "ACTIVE",
+      "createTime": "2026-09-01T08:00:00Z"
+    },
+    {
+      "name": "projects/my-project-123",
+      "organization": "organizations/org-acme",
+      "displayName": "My project",
+      "createTime": "2026-09-01T08:05:00Z"
+    },
+    {
+      "name": "instanceTypes/gp1.core.2",
+      "displayName": "gp1.core.2",
+      "kind": "gp1",
+      "vcpu": 2,
+      "memoryMib": 4096,
+      "available": true
+    },
+    {
+      "name": "instanceTypes/gp1.core.4",
+      "displayName": "gp1.core.4",
+      "kind": "gp1",
+      "vcpu": 4,
+      "memoryMib": 8192,
+      "available": true
+    },
+    {
+      "name": "imageFamilies/debian-12",
+      "displayName": "Debian 12",
+      "vendor": "Debian",
+      "os": "debian",
+      "osVersion": "12",
+      "available": true
+    },
+    {
+      "name": "imageFamilies/ubuntu-2404",
+      "displayName": "Ubuntu 24.04 LTS",
+      "vendor": "Canonical",
+      "os": "ubuntu",
+      "osVersion": "24.04",
+      "available": true
+    },
+    {
+      "name": "zones/eu-central1-az1/images/img-debian-12-20261101",
+      "description": "Debian 12 (bookworm), 2026-11-01",
+      "defaultUser": "debian",
+      "rootDevice": "vda",
+      "blockDevices": [
+        {
+          "device": "vda",
+          "sizeGib": 10
+        }
+      ],
+      "architecture": "X86_64",
+      "platform": "LINUX_UNIX",
+      "state": "AVAILABLE",
+      "imageFamily": "imageFamilies/debian-12",
+      "familyCurrent": true
+    },
+    {
+      "name": "zones/eu-central1-az1/images/img-ubuntu-2404-20261101",
+      "description": "Ubuntu 24.04 LTS, 2026-11-01",
+      "defaultUser": "ubuntu",
+      "rootDevice": "vda",
+      "blockDevices": [
+        {
+          "device": "vda",
+          "sizeGib": 10
+        }
+      ],
+      "architecture": "X86_64",
+      "platform": "LINUX_UNIX",
+      "state": "AVAILABLE",
+      "imageFamily": "imageFamilies/ubuntu-2404",
+      "familyCurrent": true
+    },
+    {
+      "name": "storageClasses/gp1",
+      "displayName": "General purpose SSD",
+      "media": "SSD",
+      "defaultClass": true,
+      "available": true,
+      "baselineIops": 3000,
+      "baselineThroughputMibps": 125
+    },
+    {
+      "name": "projects/my-project-123/zones/eu-central1-az1/volumes/vol-1a2b3c",
+      "sizeGib": 100,
+      "storageClass": "storageClasses/gp1",
+      "state": "AVAILABLE",
+      "resizeState": "RESIZE_COMPLETED",
+      "createTime": "2026-10-02T09:00:00Z"
+    },
+    {
+      "name": "projects/my-project-123/zones/eu-central1-az1/instances/i-0001a1",
+      "instanceType": "instanceTypes/gp1.core.2",
+      "state": "RUNNING",
+      "loginUser": "debian",
+      "createTime": "2026-10-01T09:00:00Z",
+      "tags": {
+        "origin:name": "web-1"
+      }
+    },
+    {
+      "name": "projects/my-project-123/zones/eu-central1-az1/instances/i-0002a1",
+      "instanceType": "instanceTypes/gp1.core.2",
+      "state": "RUNNING",
+      "loginUser": "debian",
+      "createTime": "2026-10-02T09:00:00Z",
+      "tags": {
+        "origin:name": "web-2"
+      }
+    },
+    {
+      "name": "projects/my-project-123/zones/eu-central1-az1/instances/i-0003a1",
+      "instanceType": "instanceTypes/gp1.core.2",
+      "state": "STOPPED",
+      "loginUser": "debian",
+      "createTime": "2026-10-03T09:00:00Z",
+      "tags": {
+        "origin:name": "worker-1"
+      }
+    }
+  ],
+  "ids": {
+    "volumes": "vol"
+  },
+  "created": {
+    "volumes": {
+      "state": "AVAILABLE",
+      "storageClass": "storageClasses/gp1",
+      "resizeState": "RESIZE_COMPLETED"
+    }
+  }
+}
