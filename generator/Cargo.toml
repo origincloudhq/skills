@@ -1,0 +1,26 @@
+[package]
+name = "origincloud-skills-generator"
+version = "0.0.0"
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Generates the Origin Cloud agent skills' references from the API definitions and the pinned client releases."
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+heck = "0.5"
+prost = "0.14"
+prost-reflect = "0.16"
+prost-types = "0.14"
+protox = "0.9"
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha3 = "0.10"
+toml = "0.8"
+ureq = { version = "3", features = ["json"] }
+
+[dev-dependencies]
+# Directories for the tests' definitions.
+tempfile = "3.16"
