@@ -1,0 +1,17 @@
+# The guide on docs.origincloud.eu each service's references link to, in
+# its Markdown variant ({base}/{guide}/index.html.md). A service without an
+# entry gets references without a link, and a warning.
+base = "https://docs.origincloud.eu/docs"
+
+[guides]
+billing = "platform/billing"
+compute = "compute"
+dns = "dns"
+iam = "iam"
+location = "platform"
+network = "network"
+observability = "observability"
+pvs = "storage"
+resourcemanager = "platform/organizations"
+sts = "iam/workload-identity-federation"
+support = "platform/support-cases"

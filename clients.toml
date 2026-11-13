@@ -1,0 +1,32 @@
+# The client releases the skills describe, besides the API definitions at
+# API_REVISION. scripts/generate.sh reads them; scripts/update.sh moves them
+# to the newest releases.
+
+# origincloudhq/mcp at this commit: its generator/tools.toml's [[one_way]]
+# list is the one list of the API's changes that can't be undone, and its
+# [[no_tool]] list says which methods an agent isn't handed. API_REVISION
+# is the API revision this commit was generated from.
+[mcp]
+revision = "75387df9e084c0ab5e447d52b46acd613a9e72f4"
+
+# The `origin` CLI release the `origin` skill describes. `commands` is where
+# its command tree comes from: "release" for the commands.json the release
+# carries, or a file of this repository.
+[cli]
+version = "1.18.0"
+# A stand-in made from origin 1.18.0's --help, until a release carries
+# commands.json: then this line becomes `commands = "release"`.
+commands = "generator/testdata/commands-1.18.0.json"
+
+# The provider release the origincloud-terraform skill describes, by its
+# registry address; its schema is what `tofu providers schema -json` prints.
+[terraform]
+source = "origincloudhq/origincloud"
+version = "0.18.0"
+
+# The SDK releases the origincloud-sdk skill describes, by their tags
+# (v{version}) in origincloudhq/sdk-rust, sdk-go and sdk-typescript.
+[sdk]
+rust = "0.25.0"
+go = "0.27.0"
+typescript = "0.26.0"
