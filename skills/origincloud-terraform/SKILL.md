@@ -98,7 +98,8 @@ order: `ORIGINCLOUD_ACCESS_TOKEN`; `ORIGINCLOUD_CLIENT_ID` and
 (`ORIGINCLOUD_OIDC_TOKEN_FILE`, `ORIGINCLOUD_OIDC_TOKEN`, or GitHub Actions
 with `id-token: write`); the `origin` CLI's login; an instance's metadata
 service. The provider block takes only `region` (else `ORIGINCLOUD_REGION`)
-and `endpoint`:
+and `endpoint`, which is for a test server the user names: never set it, or
+a token, to get past a missing login; tell the user what's missing instead.
 
 ```hcl
 terraform {
@@ -134,15 +135,29 @@ data, so it is a delete under the rules.
    needs the user's yes for it. Then `terraform apply tfplan`, that plan
    and no other. Never `-auto-approve` unless the user asked for it.
 
+Check the plan against what the user described, and the change against the
+references, not only against the plan. Changing an argument the references
+mark `replaces` (a volume's `zone`, an instance's `image`) destroys the
+resource and its data and creates a new one: that is a delete, and needs
+the user's yes even when they asked you to apply. A resource the user calls
+existing that the plan creates (`+ create`) means the state doesn't hold it:
+there is no state here, or it is in a backend or workspace you don't have.
+Stop and ask; applying would create a second one, and leave the first.
+
 The provider waits for every operation itself; `apply` returns once the
 resources are ready. It has no `timeouts` block.
 
 **Import.** Bring an existing resource under Terraform with an `import`
 block whose `id` is the resource's `name` (its relative name, such as
-`projects/my-project/zones/eu-central1-az1/volumes/vol-1a2b3c`), then
-`terraform plan -generate-config-out=generated.tf` to write its
-configuration, and review it before applying. Read the resource first, and
-make sure the plan changes nothing about it unless the user asked.
+`projects/my-project/zones/eu-central1-az1/volumes/vol-1a2b3c`), never with
+`terraform import`, which writes the state at once, unreviewed. Read the
+resource first (`origin pvs get-volume --volume <name> --output json`, or
+the service's `get-…` command) and write its arguments as it is, such as
+the volume's `size_gib`: a value that differs is a change at the next
+apply, and a larger `size_gib` grows the volume for good. With working
+credentials, `terraform plan -generate-config-out=generated.tf` writes the
+configuration instead; review it. The plan must import and change nothing
+about the resource unless the user asked.
 
 **State.** State holds every attribute, sensitive ones too: don't print it
 (`terraform state show`, `terraform show -json`, `terraform output` of a
