@@ -1,0 +1,661 @@
+{
+ "zone": "eu-central1-az1",
+ "profile": {
+  "default-project": "shop-prod",
+  "default-zone": "eu-central1-az1",
+  "output-format": "table"
+ },
+ "resources": [
+  {
+   "name": "regions/eu-central1",
+   "displayName": "EU Central 1",
+   "zones": [
+    "zones/eu-central1-az1",
+    "zones/eu-central1-az2"
+   ]
+  },
+  {
+   "name": "zones/eu-central1-az1",
+   "region": "regions/eu-central1",
+   "services": [
+    "compute",
+    "network",
+    "pvs"
+   ],
+   "displayName": "EU Central 1, zone 1"
+  },
+  {
+   "name": "zones/eu-central1-az2",
+   "region": "regions/eu-central1",
+   "services": [
+    "compute",
+    "network",
+    "pvs"
+   ],
+   "displayName": "EU Central 1, zone 2"
+  },
+  {
+   "name": "organizations/org-acme",
+   "displayName": "Acme Shop GmbH",
+   "state": "ACTIVE",
+   "createTime": "2026-09-01T08:00:00Z"
+  },
+  {
+   "name": "projects/shop-prod",
+   "organization": "organizations/org-acme",
+   "displayName": "Shop production",
+   "createTime": "2026-09-01T08:05:00Z"
+  },
+  {
+   "name": "projects/shop-staging",
+   "organization": "organizations/org-acme",
+   "displayName": "Shop staging",
+   "createTime": "2026-09-01T08:06:00Z"
+  },
+  {
+   "name": "users/me",
+   "member": "user:dana@acme-shop.example",
+   "email": "dana@acme-shop.example",
+   "emailVerified": true,
+   "givenName": "Dana",
+   "familyName": "Weber"
+  },
+  {
+   "name": "instanceTypes/gp1.core.2",
+   "displayName": "gp1.core.2",
+   "kind": "gp1",
+   "vcpu": 2,
+   "memoryMib": 4096,
+   "available": true
+  },
+  {
+   "name": "instanceTypes/gp1.core.4",
+   "displayName": "gp1.core.4",
+   "kind": "gp1",
+   "vcpu": 4,
+   "memoryMib": 8192,
+   "available": true
+  },
+  {
+   "name": "instanceTypes/gp1.core.16",
+   "displayName": "gp1.core.16",
+   "kind": "gp1",
+   "vcpu": 16,
+   "memoryMib": 32768,
+   "available": false
+  },
+  {
+   "name": "imageFamilies/debian-12",
+   "displayName": "Debian 12",
+   "vendor": "Debian",
+   "os": "debian",
+   "osVersion": "12",
+   "available": true
+  },
+  {
+   "name": "imageFamilies/ubuntu-2404",
+   "displayName": "Ubuntu 24.04 LTS",
+   "vendor": "Canonical",
+   "os": "ubuntu",
+   "osVersion": "24.04",
+   "available": true
+  },
+  {
+   "name": "imageFamilies/debian-11",
+   "displayName": "Debian 11",
+   "vendor": "Debian",
+   "os": "debian",
+   "osVersion": "11",
+   "available": false
+  },
+  {
+   "name": "storageClasses/gp1",
+   "displayName": "General purpose SSD",
+   "media": "SSD",
+   "defaultClass": true,
+   "available": true,
+   "baselineIops": 3000,
+   "baselineThroughputMibps": 125
+  },
+  {
+   "name": "projects/shop-prod/keyPairs/kp-ops",
+   "publicKey": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOps ops@acme-shop",
+   "tags": {
+    "origin:name": "ops"
+   }
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/instances/i-web1",
+   "instanceType": "instanceTypes/gp1.core.4",
+   "imageFamily": "imageFamilies/debian-12",
+   "keyPair": "projects/shop-prod/keyPairs/kp-ops",
+   "loginUser": "debian",
+   "networkInterfaces": [
+    "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-web1"
+   ],
+   "state": "RUNNING",
+   "createTime": "2026-10-02T09:14:00Z",
+   "tags": {
+    "origin:name": "web-1"
+   },
+   "interfaceAddresses": [
+    {
+     "networkInterface": "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-web1",
+     "ipv4Address": "10.20.1.11"
+    }
+   ]
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/instances/i-db1",
+   "instanceType": "instanceTypes/gp1.core.4",
+   "imageFamily": "imageFamilies/debian-12",
+   "keyPair": "projects/shop-prod/keyPairs/kp-ops",
+   "loginUser": "debian",
+   "networkInterfaces": [
+    "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-db1"
+   ],
+   "state": "RUNNING",
+   "createTime": "2026-10-02T09:14:00Z",
+   "tags": {
+    "origin:name": "db-1"
+   },
+   "interfaceAddresses": [
+    {
+     "networkInterface": "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-db1",
+     "ipv4Address": "10.20.1.12"
+    }
+   ]
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/instances/i-web1/volumeAttachments/att-boot1",
+   "volume": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-boot1",
+   "device": "vda",
+   "boot": true,
+   "state": "ATTACHED"
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/instances/i-db1/volumeAttachments/att-boot2",
+   "volume": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-boot2",
+   "device": "vda",
+   "boot": true,
+   "state": "ATTACHED"
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/instances/i-db1/volumeAttachments/att-pgdata",
+   "volume": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-pgdata",
+   "device": "vdb",
+   "boot": false,
+   "state": "ATTACHED"
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-boot1",
+   "sizeGib": 20,
+   "storageClass": "storageClasses/gp1",
+   "state": "IN_USE",
+   "attachment": "att-boot1",
+   "resizeState": "RESIZE_COMPLETED",
+   "tags": {
+    "origin:name": "web-1-boot"
+   }
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-boot2",
+   "sizeGib": 20,
+   "storageClass": "storageClasses/gp1",
+   "state": "IN_USE",
+   "attachment": "att-boot2",
+   "resizeState": "RESIZE_COMPLETED",
+   "tags": {
+    "origin:name": "db-1-boot"
+   }
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-pgdata",
+   "sizeGib": 100,
+   "storageClass": "storageClasses/gp1",
+   "state": "IN_USE",
+   "attachment": "att-pgdata",
+   "resizeState": "RESIZE_COMPLETED",
+   "tags": {
+    "origin:name": "pgdata"
+   }
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-scratch",
+   "sizeGib": 50,
+   "storageClass": "storageClasses/gp1",
+   "state": "AVAILABLE",
+   "resizeState": "RESIZE_COMPLETED",
+   "tags": {
+    "origin:name": "scratch"
+   }
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-archive",
+   "sizeGib": 500,
+   "storageClass": "storageClasses/gp1",
+   "state": "AVAILABLE",
+   "resizeState": "RESIZE_COMPLETED",
+   "tags": {
+    "origin:name": "archive"
+   }
+  },
+  {
+   "name": "projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
+   "ipv4CidrBlock": "10.20.0.0/16",
+   "internetGateway": "projects/shop-prod/regions/eu-central1/internetGateways/igw-main",
+   "createTime": "2026-10-02T09:14:00Z",
+   "tags": {
+    "origin:name": "main"
+   }
+  },
+  {
+   "name": "projects/shop-prod/regions/eu-central1/internetGateways/igw-main",
+   "vpc": "projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
+   "createTime": "2026-10-02T09:14:00Z"
+  },
+  {
+   "name": "projects/shop-prod/regions/eu-central1/routeTables/rt-public",
+   "vpc": "projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
+   "main": false,
+   "createTime": "2026-10-02T09:14:00Z",
+   "tags": {
+    "origin:name": "public"
+   }
+  },
+  {
+   "name": "projects/shop-prod/regions/eu-central1/routeTables/rt-public/routes/rte-default",
+   "destination": "0.0.0.0/0",
+   "internetGateway": "projects/shop-prod/regions/eu-central1/internetGateways/igw-main"
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/subnets/sub-public",
+   "vpc": "projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
+   "routeTable": "projects/shop-prod/regions/eu-central1/routeTables/rt-public",
+   "ipv4CidrBlock": "10.20.1.0/24",
+   "availableIpv4AddressCount": 240,
+   "createTime": "2026-10-02T09:14:00Z",
+   "tags": {
+    "origin:name": "public"
+   }
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/subnets/sub-public/routeTableAssociations/rta-public",
+   "routeTable": "projects/shop-prod/regions/eu-central1/routeTables/rt-public"
+  },
+  {
+   "name": "projects/shop-prod/regions/eu-central1/securityGroups/sg-web",
+   "vpc": "projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
+   "createTime": "2026-10-02T09:14:00Z",
+   "tags": {
+    "origin:name": "web"
+   }
+  },
+  {
+   "name": "projects/shop-prod/regions/eu-central1/securityGroups/sg-web/rules/rule-http",
+   "direction": "INGRESS",
+   "protocol": "TCP",
+   "firstPort": 80,
+   "cidrBlock": "0.0.0.0/0",
+   "description": "HTTP"
+  },
+  {
+   "name": "projects/shop-prod/regions/eu-central1/securityGroups/sg-web/rules/rule-ssh",
+   "direction": "INGRESS",
+   "protocol": "TCP",
+   "firstPort": 22,
+   "cidrBlock": "203.0.113.0/24",
+   "description": "SSH from the office"
+  },
+  {
+   "name": "projects/shop-prod/regions/eu-central1/securityGroups/sg-web/rules/rule-out",
+   "direction": "EGRESS",
+   "protocol": "ALL",
+   "cidrBlock": "0.0.0.0/0"
+  },
+  {
+   "name": "projects/shop-prod/regions/eu-central1/securityGroups/sg-db",
+   "vpc": "projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
+   "createTime": "2026-10-02T09:14:00Z",
+   "tags": {
+    "origin:name": "db"
+   }
+  },
+  {
+   "name": "projects/shop-prod/regions/eu-central1/securityGroups/sg-db/rules/rule-pg",
+   "direction": "INGRESS",
+   "protocol": "TCP",
+   "firstPort": 5432,
+   "peerSecurityGroup": "projects/shop-prod/regions/eu-central1/securityGroups/sg-web",
+   "description": "Postgres from the web servers"
+  },
+  {
+   "name": "projects/shop-prod/regions/eu-central1/securityGroups/sg-legacy",
+   "vpc": "projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
+   "createTime": "2026-09-03T10:00:00Z",
+   "tags": {
+    "origin:name": "legacy-ftp"
+   }
+  },
+  {
+   "name": "projects/shop-prod/regions/eu-central1/securityGroups/sg-legacy/rules/rule-ftp",
+   "direction": "INGRESS",
+   "protocol": "TCP",
+   "firstPort": 21,
+   "cidrBlock": "0.0.0.0/0",
+   "description": "FTP"
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-web1",
+   "subnet": "projects/shop-prod/zones/eu-central1-az1/subnets/sub-public",
+   "securityGroups": [
+    "projects/shop-prod/regions/eu-central1/securityGroups/sg-web"
+   ],
+   "ipv4Address": "10.20.1.11",
+   "state": "ATTACHED",
+   "instance": "projects/shop-prod/zones/eu-central1-az1/instances/i-web1"
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-web1/securityGroupAssociations/sga-web1",
+   "securityGroup": "projects/shop-prod/regions/eu-central1/securityGroups/sg-web"
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-db1",
+   "subnet": "projects/shop-prod/zones/eu-central1-az1/subnets/sub-public",
+   "securityGroups": [
+    "projects/shop-prod/regions/eu-central1/securityGroups/sg-db"
+   ],
+   "ipv4Address": "10.20.1.12",
+   "state": "ATTACHED",
+   "instance": "projects/shop-prod/zones/eu-central1-az1/instances/i-db1"
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-db1/securityGroupAssociations/sga-db1",
+   "securityGroup": "projects/shop-prod/regions/eu-central1/securityGroups/sg-db"
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/floatingIps/fip-web1",
+   "address": "192.0.2.21",
+   "networkInterface": "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-web1",
+   "privateAddress": "10.20.1.11",
+   "createTime": "2026-10-02T09:14:00Z"
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/floatingIps/fip-web1/associations/fia-web1",
+   "networkInterface": "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-web1",
+   "privateAddress": "10.20.1.11"
+  },
+  {
+   "name": "organizations/org-acme/serviceAccounts/sa-ci",
+   "displayName": "ci-deployer",
+   "member": "serviceAccount:sa-ci",
+   "state": "ACTIVE",
+   "type": "WORKLOAD",
+   "createTime": "2026-09-10T12:00:00Z"
+  },
+  {
+   "name": "organizations/org-acme/serviceAccounts/sa-backup",
+   "displayName": "backup",
+   "member": "serviceAccount:sa-backup",
+   "state": "ACTIVE",
+   "type": "EXTERNAL",
+   "clientId": "oc-sa-backup",
+   "createTime": "2026-09-10T12:00:00Z"
+  },
+  {
+   "name": "roles/owner",
+   "displayName": "Owner",
+   "description": "Full control of the organization and its projects."
+  },
+  {
+   "name": "roles/viewer",
+   "displayName": "Viewer",
+   "description": "Read every resource."
+  },
+  {
+   "name": "roles/compute.admin",
+   "displayName": "Compute Admin",
+   "description": "Launch, change, stop and terminate instances, and manage images and key pairs.",
+   "includedPermissions": [
+    "permissions/compute.instance.create",
+    "permissions/compute.instance.delete"
+   ]
+  },
+  {
+   "name": "roles/compute.viewer",
+   "displayName": "Compute Viewer",
+   "description": "Read instances, images and key pairs."
+  },
+  {
+   "name": "roles/network.admin",
+   "displayName": "Network Admin",
+   "description": "Manage VPCs, subnets, security groups and floating IPs."
+  },
+  {
+   "name": "roles/billing.viewer",
+   "displayName": "Billing Viewer",
+   "description": "Read billing accounts and costs."
+  },
+  {
+   "name": "organizations/org-acme/roleBindings/rb-owner",
+   "member": "user:dana@acme-shop.example",
+   "role": "roles/owner",
+   "creator": "platform",
+   "createTime": "2026-09-01T08:00:00Z"
+  },
+  {
+   "name": "organizations/org-acme/roleBindings/rb-ci-view",
+   "member": "serviceAccount:sa-ci",
+   "role": "roles/viewer",
+   "project": "projects/shop-prod",
+   "creator": "user:dana@acme-shop.example",
+   "createTime": "2026-09-10T12:01:00Z"
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/snapshots/snap-pg-0901",
+   "sourceVolume": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-pgdata",
+   "sourceSizeGib": 100,
+   "state": "COMPLETED",
+   "protectionState": "UNPROTECTED",
+   "tags": {
+    "origin:name": "pgdata-2026-09-01"
+   }
+  },
+  {
+   "name": "projects/shop-prod/zones/eu-central1-az1/snapshots/snap-pg-1001",
+   "sourceVolume": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-pgdata",
+   "sourceSizeGib": 100,
+   "state": "COMPLETED",
+   "protectionState": "UNPROTECTED",
+   "tags": {
+    "origin:name": "pgdata-2026-10-01"
+   }
+  }
+ ],
+ "ids": {
+  "volumes": "vol",
+  "snapshots": "snap",
+  "instances": "i",
+  "keyPairs": "kp",
+  "vpcs": "vpc",
+  "subnets": "sub",
+  "securityGroups": "sg",
+  "rules": "rule",
+  "networkInterfaces": "nic",
+  "securityGroupAssociations": "sga",
+  "floatingIps": "fip",
+  "associations": "fia",
+  "internetGateways": "igw",
+  "routeTables": "rt",
+  "routes": "rte",
+  "routeTableAssociations": "rta",
+  "volumeAttachments": "att",
+  "roleBindings": "rb",
+  "serviceAccounts": "sa"
+ },
+ "created": {
+  "volumes": {
+   "state": "AVAILABLE",
+   "storageClass": "storageClasses/gp1",
+   "resizeState": "RESIZE_COMPLETED"
+  },
+  "snapshots": {
+   "state": "COMPLETED",
+   "protectionState": "UNPROTECTED"
+  },
+  "instances": {
+   "state": "RUNNING",
+   "loginUser": "debian",
+   "createTime": "2026-11-13T10:00:00Z"
+  },
+  "networkInterfaces": {
+   "ipv4Address": "10.20.1.37",
+   "state": "AVAILABLE"
+  },
+  "floatingIps": {
+   "address": "192.0.2.57"
+  },
+  "volumeAttachments": {
+   "state": "ATTACHED",
+   "device": "vdc"
+  },
+  "roleBindings": {
+   "creator": "user:dana@acme-shop.example",
+   "createTime": "2026-11-13T10:00:00Z"
+  }
+ },
+ "responses": [
+  {
+   "method": "GET",
+   "path": "/v1beta1/projects/shop-prod:queryCost",
+   "body": {
+    "total": "184.37",
+    "services": [
+     {
+      "service": "compute",
+      "total": "121.40",
+      "products": [
+       {
+        "productKey": "compute.gp1.core.4",
+        "total": "118.92",
+        "buckets": [
+         {
+          "startTime": "2026-11-01T00:00:00Z",
+          "amount": "9.91"
+         }
+        ]
+       },
+       {
+        "productKey": "compute.public_ipv4",
+        "total": "2.48",
+        "buckets": [
+         {
+          "startTime": "2026-11-01T00:00:00Z",
+          "amount": "0.21"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "service": "network",
+      "total": "21.80",
+      "products": [
+       {
+        "productKey": "network.egress",
+        "total": "21.80",
+        "buckets": [
+         {
+          "startTime": "2026-11-01T00:00:00Z",
+          "amount": "1.82"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "service": "pvs",
+      "total": "41.17",
+      "products": [
+       {
+        "productKey": "pvs.gp1.storage",
+        "total": "36.95",
+        "buckets": [
+         {
+          "startTime": "2026-11-01T00:00:00Z",
+          "amount": "3.08"
+         }
+        ]
+       },
+       {
+        "productKey": "pvs.snapshot.storage",
+        "total": "4.22",
+        "buckets": [
+         {
+          "startTime": "2026-11-01T00:00:00Z",
+          "amount": "0.35"
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/v1beta1/projects/shop-staging:queryCost",
+   "body": {
+    "total": "12.08",
+    "services": [
+     {
+      "service": "compute",
+      "total": "12.08",
+      "products": [
+       {
+        "productKey": "compute.gp1.core.2",
+        "total": "12.08",
+        "buckets": []
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/v1beta1/projects/shop-prod:queryUsage",
+   "body": {
+    "usageRecords": [
+     {
+      "resourceKind": "compute.instance",
+      "resourceId": "i-web1",
+      "metric": "running_seconds",
+      "productKey": "compute.gp1.core.4",
+      "quantity": "1080000",
+      "startTime": "2026-11-01T00:00:00Z",
+      "endTime": "2026-11-13T12:00:00Z"
+     },
+     {
+      "resourceKind": "compute.instance",
+      "resourceId": "i-db1",
+      "metric": "running_seconds",
+      "productKey": "compute.gp1.core.4",
+      "quantity": "1080000",
+      "startTime": "2026-11-01T00:00:00Z",
+      "endTime": "2026-11-13T12:00:00Z"
+     },
+     {
+      "resourceKind": "pvs.volume",
+      "resourceId": "vol-archive",
+      "metric": "gib_seconds",
+      "productKey": "pvs.gp1.storage",
+      "quantity": "540000000",
+      "startTime": "2026-11-01T00:00:00Z",
+      "endTime": "2026-11-13T12:00:00Z"
+     }
+    ]
+   }
+  }
+ ]
+}
