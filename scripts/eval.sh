@@ -41,8 +41,7 @@
 # CODEX_HOME); the `origin` CLI is EVAL_ORIGIN, else the one on PATH, and
 # the toolchains are this machine's, with network access.
 #
-# A task with an `api` runs the `origin` CLI against a fake API
-# (evals/fake-api): `api.world` names a world file next to evals.json, the
+# A task with an `api` runs against a fake API (evals/fake-api): `api.world` names a world file next to evals.json, the
 # resources, canned answers and operations the fake serves, and the task's
 # own `resources`, `responses` and `operations` are added to it, a resource
 # replacing the world's of the same name; `profile` replaces the world's
@@ -50,7 +49,11 @@
 # agent finds an `origin` on its PATH that is the real CLI with a login
 # session of its own, sending every call to the fake API; the notice that
 # the CLI calls a test server is left out of its output, so the agent sees
-# what it would see on the platform.
+# what it would see on the platform. In the container, the platform's
+# hosts are the fake API as well, through TLS that evals/bin/eval-fake-api
+# terminates with a certificate the image trusts, and the CLI's login
+# session is where the provider and the SDKs find it: what the agent
+# builds calls the fake API too.
 #
 # Then each check of the task runs in that directory:
 #
@@ -321,16 +324,32 @@ run_on_host() {
   stop_fake_api
 }
 
+# The platform's hosts, each service's and its region's front door
+# (pvs.origincloudapis.eu, pvs.eu-central1.origincloudapis.eu), which the
+# fake API's container maps to itself: the image's certificate names them,
+# for the region the worlds have. The services are those the references
+# have.
+api_hosts=() no_proxy="127.0.0.1,localhost,.origincloudapis.eu"
+for reference in "${ROOT}/skills/origin/references/"*.md; do
+  service="$(basename "${reference}" .md)"
+  [[ "${service}" != *-* ]] || continue
+  api_hosts+=(--add-host "${service}.origincloudapis.eu:127.0.0.1"
+    --add-host "${service}.eu-central1.origincloudapis.eu:127.0.0.1")
+done
+
 # Runs the agent in its container. The fake API runs in a container of its
 # own, from the same image, whose network the agent's container shares, so
-# that the agent reaches it on 127.0.0.1 and nothing else but the proxy.
+# that the agent reaches it on 127.0.0.1, and at the platform's hosts
+# through TLS on port 443 (evals/bin/eval-fake-api), and nothing else but
+# the proxy.
 run_in_container() {
   local dir="$1" prompt="$2" has_api="$3" id="$4" net endpoints="" profile="null" name
   name="${run}-$(tr -c 'a-z0-9-' '-' <<< "${id}" | head -c 40)"
   net=(--network "${run}")
   if [[ "${has_api}" == true ]]; then
     docker run -d --name "${name}-api" --network "${run}" --user "$(id -u):$(id -g)" \
-      -v "${dir}/api:/api" --entrypoint /usr/local/bin/fake-api "${image}" \
+      --sysctl net.ipv4.ip_unprivileged_port_start=0 "${api_hosts[@]}" \
+      -v "${dir}/api:/api" --entrypoint /usr/local/bin/eval-fake-api "${image}" \
       --world /api/world.json --log /api/requests.log --env /api/endpoints.env > /dev/null
     cleanup=("docker rm -f ${name}-api" "${cleanup[@]}")
     docker logs -f "${name}-api" > "${dir}/api/stderr.log" 2>&1 &
@@ -346,7 +365,7 @@ run_in_container() {
     timeout "${timeout}" docker run --rm --name "${name}" "${net[@]}" \
       --user "$(id -u):$(id -g)" -v "${dir}/work:/work" \
       -e HTTPS_PROXY="http://${run}-proxy:3128" -e https_proxy="http://${run}-proxy:3128" \
-      -e NO_PROXY=127.0.0.1,localhost -e no_proxy=127.0.0.1,localhost \
+      -e NO_PROXY="${no_proxy}" -e no_proxy="${no_proxy}" \
       -e CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 -e DISABLE_AUTOUPDATER=1 \
       -e ORIGIN_EVAL_ENDPOINTS -e ORIGIN_EVAL_PROFILE -e EVAL_SKILLS_DIR \
       "${credentials[@]}" "${image}" "${command[@]}" "${prompt}"

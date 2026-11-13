@@ -158,10 +158,13 @@ attachment only after the volume's operation was done. The fake API serves
 each service on a port of its own, as the CLI takes them
 (`ORIGINCLOUD_{SERVICE}_ENDPOINT`), and all of them on one more,
 `EVAL_ENDPOINT`, for a client that takes one endpoint, as the provider's
-`endpoint` does. The provider and the SDKs read no endpoint from the
-environment, so an agent's own `tofu plan` or program can't reach the fake
-API; its `origin` can, which in a Terraform task is how it reads what
-exists.
+`endpoint` does. In the agent's container, the platform's hosts
+(`pvs.origincloudapis.eu`, `pvs.eu-central1.origincloudapis.eu`, …) are
+the fake API too, through TLS with a certificate from a CA the image
+trusts (`evals/bin/eval-fake-api`), and the `origin` CLI's login session is
+where the provider and the SDKs look for one: an agent's own `tofu plan`,
+or the program it wrote, calls the fake API as it would call the platform,
+and its requests are in the log.
 
 A `run` check runs in a container of the same image, without a network,
 through `evals/bin/eval-check`. A task with an `api` gives the check a fake

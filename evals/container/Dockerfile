@@ -38,8 +38,24 @@ FROM golang:1.27.4-trixie AS go
 
 FROM node:22-trixie-slim AS base
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends bash ca-certificates curl git jq ripgrep unzip \
+  && apt-get install -y --no-install-recommends bash ca-certificates curl git jq openssl ripgrep socat unzip \
   && rm -rf /var/lib/apt/lists/*
+# The platform's hosts, *.origincloudapis.eu, answer in the container as
+# the fake API, through TLS that socat terminates (evals/bin/eval-fake-api):
+# a certificate for them from a CA of this image's own, which the system,
+# and so Go, Rust and the `origin` CLI, trusts, and Node with
+# NODE_EXTRA_CA_CERTS. The key is no secret: it exists for the evals only.
+RUN mkdir -p /opt/eval-tls && cd /opt/eval-tls \
+  && openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -subj "/CN=Origin Cloud evals CA" \
+       -keyout ca.key -out ca.crt 2> /dev/null \
+  && openssl req -newkey rsa:2048 -nodes -subj "/CN=origincloudapis.eu" \
+       -keyout server.key -out server.csr 2> /dev/null \
+  && printf 'subjectAltName=DNS:origincloudapis.eu,DNS:*.origincloudapis.eu,DNS:*.eu-central1.origincloudapis.eu\n' > san.ext \
+  && openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -days 3650 \
+       -extfile san.ext -out server.crt 2> /dev/null \
+  && rm -f ca.key server.csr san.ext ca.srl && chmod 644 server.key \
+  && cp ca.crt /usr/local/share/ca-certificates/origincloud-evals.crt && update-ca-certificates > /dev/null
+ENV NODE_EXTRA_CA_CERTS=/opt/eval-tls/ca.crt
 
 # --- The toolchains of each skill's tasks. ---------------------------------
 FROM base AS tools-origin
@@ -102,7 +118,7 @@ RUN set -- typescript@^5 typescript@latest @types/node@^20 @types/node@^22 @type
   && node /usr/local/lib/eval/npm-mirror.mjs build /opt/npm "$@" \
   && chmod -R a+rX /opt/npm
 ENV npm_config_registry=http://127.0.0.1:4873/ npm_config_audit=false npm_config_fund=false \
-  npm_config_update_notifier=false npm_config_cache=/tmp/npm-cache
+  npm_config_update_notifier=false
 # Rust, and Cargo's registry cache holding the Rust SDK's crates and what
 # they need, with Tokio and anyhow, which a program calling them uses. Cargo
 # runs offline, and resolves to what the cache holds.
