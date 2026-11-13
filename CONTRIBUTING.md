@@ -112,12 +112,27 @@ the files the task starts from, and checks of what the agent did, such as
 `terraform validate` passing on its configuration, or its transcript
 showing that it asked before a replacement rather than applying it.
 `scripts/eval.sh` runs a skill's tasks with Claude Code or Codex, with the
-skill installed or without it, and without Origin Cloud credentials:
+skill installed or without it, in a home directory of its own and without
+Origin Cloud credentials:
 
 ```sh
 scripts/eval.sh --skill origincloud-terraform --agent claude
 scripts/eval.sh --skill origincloud-terraform --agent claude --without
 ```
+
+The agent's own credentials come from the environment, since its home is
+a new one: `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN` or a
+`CLAUDE_CONFIG_DIR` logged in for the evals for Claude Code, and
+`CODEX_API_KEY` or such a `CODEX_HOME` for Codex.
+
+The `origin` skill's tasks run the real `origin` CLI against a fake API,
+`evals/fake-api`: a world of resources (`skills/origin/evals/worlds/`)
+that it reads, lists, creates, changes and deletes as the API does, with
+operations that take a moment, and a log of every request it received. A
+task's checks can then ask what the agent sent (`requests_include`,
+`requests_exclude`), such as no `DELETE` before the user said yes, or an
+attachment only after the volume's operation was done. Point
+`EVAL_ORIGIN` at the CLI release the skill describes.
 
 A change to a skill's hand-written parts says in its pull request how the
 evals came out, with and without the skill.

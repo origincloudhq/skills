@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["generator"]
+members = ["evals/fake-api", "generator"]
 
 [workspace.package]
 edition = "2021"
