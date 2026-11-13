@@ -6,6 +6,9 @@
 #
 #   scripts/eval.sh --skill origin --agent claude|codex [--without] [--task ID] [--host]
 #
+# With --regrade, it runs no agent and checks again what a run left under
+# EVAL_OUT, after a change to the checks.
+#
 # Each task runs in a directory of its own, holding the task's `files`; with
 # the skill, it is installed where the agent finds a project's skills
 # (.claude/skills/ for Claude Code, .agents/skills/ for Codex), without its
@@ -77,7 +80,7 @@ readonly ROOT
 readonly CLAUDE_CODE_VERSION="2.1.323"
 readonly CODEX_VERSION="0.144.4"
 
-skill="" agent="" with=true only="" host=false
+skill="" agent="" with=true only="" host=false regrade=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --skill) skill="$2"; shift 2 ;;
@@ -85,7 +88,8 @@ while [[ $# -gt 0 ]]; do
     --without) with=false; shift ;;
     --task) only="$2"; shift 2 ;;
     --host) host=true; shift ;;
-    *) echo "usage: $0 --skill NAME --agent claude|codex [--without] [--task ID] [--host]" >&2; exit 2 ;;
+    --regrade) regrade=true; shift ;;
+    *) echo "usage: $0 --skill NAME --agent claude|codex [--without] [--task ID] [--host] [--regrade]" >&2; exit 2 ;;
   esac
 done
 evals="${ROOT}/skills/${skill}/evals/evals.json"
@@ -112,12 +116,16 @@ if [[ -n "${EVAL_AGENT:-}" ]]; then
   read -r -a command <<< "${EVAL_AGENT}"
 fi
 
+if [[ "${regrade}" == true ]]; then
+  [[ -n "${EVAL_OUT:-}" ]] || { echo "--regrade needs EVAL_OUT, the run's directory" >&2; exit 2; }
+  host=true
+fi
 out="${EVAL_OUT:-$(mktemp -d)}"
 mkdir -p "${out}"
 variant="$([[ "${with}" == true ]] && echo with || echo without)"
 pinned="$(sed -n '/^\[cli\]/,/^\[/s/^version = "\(.*\)"/\1/p' "${ROOT}/clients.toml")"
 needs_api=false
-if jq -e 'any(.tasks[]; has("api"))' "${evals}" > /dev/null; then
+if jq -e 'any(.tasks[]; has("api"))' "${evals}" > /dev/null && [[ "${regrade}" == false ]]; then
   needs_api=true
 fi
 
@@ -343,27 +351,30 @@ while read -r task; do
   id="$(jq -r .id <<< "${task}")"
   [[ -z "${only}" || "${only}" == "${id}" ]] || continue
   dir="${out}/${agent}/${variant}/${id}"
-  rm -rf "${dir}"
-  mkdir -p "${dir}/work"
-  # The task's files.
-  while read -r name; do
-    [[ -n "${name}" ]] || continue
-    mkdir -p "$(dirname "${dir}/work/${name}")"
-    jq -r --arg n "${name}" '.files[$n]' <<< "${task}" > "${dir}/work/${name}"
-  done < <(jq -r '(.files // {}) | keys[]' <<< "${task}")
-  has_api=false
-  if jq -e 'has("api")' <<< "${task}" > /dev/null; then
-    has_api=true
-    mkdir -p "${dir}/api"
-    write_world "$(jq -c .api <<< "${task}")" "${dir}/api/world.json"
-  fi
+  if [[ "${regrade}" == false ]]; then
+    rm -rf "${dir}"
+    mkdir -p "${dir}/work"
+    # The task's files.
+    while read -r name; do
+      [[ -n "${name}" ]] || continue
+      mkdir -p "$(dirname "${dir}/work/${name}")"
+      jq -r --arg n "${name}" '.files[$n]' <<< "${task}" > "${dir}/work/${name}"
+    done < <(jq -r '(.files // {}) | keys[]' <<< "${task}")
+    has_api=false
+    if jq -e 'has("api")' <<< "${task}" > /dev/null; then
+      has_api=true
+      mkdir -p "${dir}/api"
+      write_world "$(jq -c .api <<< "${task}")" "${dir}/api/world.json"
+    fi
 
-  prompt="$(jq -r .prompt <<< "${task}")"
-  if [[ "${host}" == true ]]; then
-    run_on_host "${dir}" "${prompt}" "${has_api}"
-  else
-    run_in_container "${dir}" "${prompt}" "${has_api}" "${id}"
+    prompt="$(jq -r .prompt <<< "${task}")"
+    if [[ "${host}" == true ]]; then
+      run_on_host "${dir}" "${prompt}" "${has_api}"
+    else
+      run_in_container "${dir}" "${prompt}" "${has_api}" "${id}"
+    fi
   fi
+  [[ -d "${dir}" ]] || { echo "${id}: no run under ${dir}" >&2; continue; }
   # The last message: Claude Code's `result`, Codex's last agent message;
   # the transcript's last line otherwise.
   answer="$(jq -rs '[.[] | select(.type == "result") | .result] | last // empty' "${dir}/transcript.jsonl" 2>/dev/null || true)"

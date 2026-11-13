@@ -144,6 +144,9 @@ task's checks can then ask what the agent sent (`requests_include`,
 `requests_exclude`), such as no `DELETE` before the user said yes, or an
 attachment only after the volume's operation was done.
 
+`--regrade` runs no agent and checks a run's directory (`EVAL_OUT`) again,
+after a check changed.
+
 A change to a skill's hand-written parts says in its pull request how the
 evals came out, with and without the skill.
 
