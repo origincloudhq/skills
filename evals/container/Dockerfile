@@ -43,7 +43,7 @@ RUN apt-get update \
 # The platform's hosts, *.origincloudapis.eu, answer in the container as
 # the fake API, through TLS that socat terminates (evals/bin/eval-fake-api):
 # a certificate for them from a CA of this image's own, which the system,
-# and so Go, Rust and the `origin` CLI, trusts, and Node with
+# and so Go, Rust, the provider and the `origin` CLI, trusts, and Node with
 # NODE_EXTRA_CA_CERTS. The key is no secret: it exists for the evals only.
 RUN mkdir -p /opt/eval-tls && cd /opt/eval-tls \
   && openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -subj "/CN=Origin Cloud evals CA" \
@@ -159,9 +159,9 @@ RUN arch="$(dpkg --print-architecture)" \
 COPY --from=fake-api /src/target/release/fake-api /usr/local/bin/fake-api
 COPY evals/container/entrypoint.sh /usr/local/bin/eval-entrypoint
 COPY evals/bin/ /usr/local/bin/
-# The entrypoint writes the `origin` the agent calls to /tmp/bin; a login
-# shell, which resets PATH, finds it here too.
-RUN ln -s /tmp/bin/origin /usr/local/bin/origin
+# The `origin` the agent calls is the release itself, which reaches the
+# fake API at the platform's hosts, as the provider and the SDKs do.
+RUN ln -s /opt/origin/origin /usr/local/bin/origin
 ENTRYPOINT ["/usr/local/bin/eval-entrypoint"]
 
 FROM without AS with

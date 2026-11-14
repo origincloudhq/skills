@@ -4,7 +4,11 @@
 # agent, with the skill installed or without it, and checks what the agent
 # did:
 #
-#   scripts/eval.sh --skill NAME --agent claude|codex [--without] [--task ID] [--host]
+#   scripts/eval.sh --skill NAME --agent claude|codex [--without] [--task ID] [--host] [--repeat N]
+#
+# --repeat N runs each task N times, for a measure of the variance between
+# runs, and prints, after each run's line, a line per task with how many of
+# its runs passed. Runs cost money: one run is the default.
 #
 # With --regrade, it runs no agent and checks again what a run left under
 # EVAL_OUT, after a change to the checks, in the same image as the run (or
@@ -49,13 +53,16 @@
 # replacing the world's of the same name; `profile` replaces the world's
 # CLI profile (`default-project`, `default-zone`, …), `null` for none. The
 # agent finds an `origin` on its PATH that is the real CLI with a login
-# session of its own, sending every call to the fake API; the notice that
-# the CLI calls a test server is left out of its output, so the agent sees
-# what it would see on the platform. In the container, the platform's
-# hosts are the fake API as well, through TLS that evals/bin/eval-fake-api
-# terminates with a certificate the image trusts, and the CLI's login
-# session is where the provider and the SDKs find it: what the agent
-# builds calls the fake API too.
+# session of its own. In the container, the platform's hosts
+# (pvs.origincloudapis.eu, …) are the fake API, through TLS that
+# evals/bin/eval-fake-api terminates with a certificate the image trusts:
+# the `origin` there is the release itself, calling the hosts it calls on
+# the platform, and its login session is where the provider and the SDKs
+# find it, so what the agent builds calls the fake API too, and nothing
+# the agent reads names a local endpoint. With --host, the `origin` is a
+# wrapper that sends the CLI's calls to the fake API's local endpoints
+# (ORIGINCLOUD_*_ENDPOINT) and leaves the CLI's notice of them out of its
+# output; the provider and the SDKs have no way to the fake API there.
 #
 # Then each check of the task runs in that directory:
 #
@@ -74,8 +81,14 @@
 #   receive a request whose line, `METHOD /path?query STATUS body`, matches
 #   `pattern`.
 #
+# Every task with an `api` also fails when the agent's transcript, or a
+# file it left, names one of the fake API's local endpoints
+# (127.0.0.1:{port}): an agent that saw one could copy it where only the
+# platform's host belongs. No prompt may name one either.
+#
 # It prints a line of JSON per task, {"task", "agent", "skill", "passed",
-# "failed": [the reasons of the checks that failed]}, and the directories
+# "failed": [the reasons of the checks that failed]}, with "run" too under
+# --repeat, and the directories
 # are kept under EVAL_OUT (default: a new temporary directory) for reading
 # the transcripts and the fake API's requests. EVAL_AGENT overrides the
 # agent's command line, run in the task's directory (in the container,
@@ -93,7 +106,7 @@ readonly ROOT
 readonly CLAUDE_CODE_VERSION="2.1.323"
 readonly CODEX_VERSION="0.144.4"
 
-skill="" agent="" with=true only="" host=false regrade=false
+skill="" agent="" with=true only="" host=false regrade=false repeat=1
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --skill) skill="$2"; shift 2 ;;
@@ -102,12 +115,19 @@ while [[ $# -gt 0 ]]; do
     --task) only="$2"; shift 2 ;;
     --host) host=true; shift ;;
     --regrade) regrade=true; shift ;;
-    *) echo "usage: $0 --skill NAME --agent claude|codex [--without] [--task ID] [--host] [--regrade]" >&2; exit 2 ;;
+    --repeat) repeat="$2"; shift 2 ;;
+    *) echo "usage: $0 --skill NAME --agent claude|codex [--without] [--task ID] [--host] [--regrade] [--repeat N]" >&2; exit 2 ;;
   esac
 done
+[[ "${repeat}" =~ ^[1-9][0-9]*$ ]] || { echo "--repeat takes a number of runs, 1 or more" >&2; exit 2; }
 evals="${ROOT}/skills/${skill}/evals/evals.json"
 [[ -f "${evals}" ]] || { echo "no evals for skill ${skill:-?}: ${evals}" >&2; exit 2; }
 timeout="${EVAL_TIMEOUT:-900}"
+# A prompt that named a local endpoint would hand the agent what the
+# endpoint check below fails it for.
+if jq -e 'any(.tasks[]; .prompt | test("127\\.0\\.0\\.1|localhost|\\[::1\\]|ORIGINCLOUD_[A-Z]+_ENDPOINT"))' "${evals}" > /dev/null; then
+  echo "a prompt in ${evals} names a local endpoint" >&2; exit 2
+fi
 
 case "${agent}" in
   claude)
@@ -341,11 +361,11 @@ done
 
 # Runs the agent in its container. The fake API runs in a container of its
 # own, from the same image, whose network the agent's container shares, so
-# that the agent reaches it on 127.0.0.1, and at the platform's hosts
-# through TLS on port 443 (evals/bin/eval-fake-api), and nothing else but
-# the proxy.
+# that the agent reaches it at the platform's hosts through TLS on port 443
+# (evals/bin/eval-fake-api), and nothing else but the proxy. The agent is
+# told none of its local endpoints.
 run_in_container() {
-  local dir="$1" prompt="$2" has_api="$3" id="$4" net endpoints="" profile="null" name
+  local dir="$1" prompt="$2" has_api="$3" id="$4" net api="" profile="null" name
   name="${run}-$(tr -c 'a-z0-9-' '-' <<< "${id}" | head -c 40)"
   net=(--network "${run}")
   if [[ "${has_api}" == true ]]; then
@@ -357,19 +377,19 @@ run_in_container() {
     docker logs -f "${name}-api" > "${dir}/api/stderr.log" 2>&1 &
     await_endpoints "${dir}"
     net=(--network "container:${name}-api")
-    endpoints="$(cat "${dir}/api/endpoints.env")"
+    api=1
     profile="$(jq -c '.profile' "${dir}/api/world.json")"
   fi
   (
     for key in "${!secret[@]}"; do export "${key}=${secret[${key}]}"; done
-    export ORIGIN_EVAL_ENDPOINTS="${endpoints}" ORIGIN_EVAL_PROFILE="${profile}" \
+    export ORIGIN_EVAL_API="${api}" ORIGIN_EVAL_PROFILE="${profile}" \
       EVAL_SKILLS_DIR="${skills_dir}"
     timeout "${timeout}" docker run --rm --name "${name}" "${net[@]}" \
       --user "$(id -u):$(id -g)" -v "${dir}/work:/work" \
       -e HTTPS_PROXY="http://${run}-proxy:3128" -e https_proxy="http://${run}-proxy:3128" \
       -e NO_PROXY="${no_proxy}" -e no_proxy="${no_proxy}" \
       -e CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 -e DISABLE_AUTOUPDATER=1 \
-      -e ORIGIN_EVAL_ENDPOINTS -e ORIGIN_EVAL_PROFILE -e EVAL_SKILLS_DIR \
+      -e ORIGIN_EVAL_API -e ORIGIN_EVAL_PROFILE -e EVAL_SKILLS_DIR \
       "${credentials[@]}" "${image}" "${command[@]}" "${prompt}"
   ) > "${dir}/transcript.jsonl" 2> "${dir}/stderr.log" < /dev/null || true
   docker rm -f "${name}" > /dev/null 2>&1 || true
@@ -423,75 +443,100 @@ run_check() {
 while read -r task; do
   id="$(jq -r .id <<< "${task}")"
   [[ -z "${only}" || "${only}" == "${id}" ]] || continue
-  dir="${out}/${agent}/${variant}/${id}"
-  if [[ "${regrade}" == false ]]; then
-    rm -rf "${dir}"
-    mkdir -p "${dir}/work"
-    # The task's files.
-    while read -r name; do
-      [[ -n "${name}" ]] || continue
-      mkdir -p "$(dirname "${dir}/work/${name}")"
-      jq -r --arg n "${name}" '.files[$n]' <<< "${task}" > "${dir}/work/${name}"
-    done < <(jq -r '(.files // {}) | keys[]' <<< "${task}")
-    has_api=false
-    if jq -e 'has("api")' <<< "${task}" > /dev/null; then
-      has_api=true
-      mkdir -p "${dir}/api"
-      write_world "$(jq -c .api <<< "${task}")" "${dir}/api/world.json"
+  passes=0
+  for run_no in $(seq "${repeat}"); do
+    # The run's directory; under --repeat, one per run.
+    dir="${out}/${agent}/${variant}/${id}"
+    if [[ "${repeat}" -gt 1 ]]; then dir="${dir}/${run_no}"; fi
+    if [[ "${regrade}" == false ]]; then
+      rm -rf "${dir}"
+      mkdir -p "${dir}/work"
+      # The task's files.
+      while read -r name; do
+        [[ -n "${name}" ]] || continue
+        mkdir -p "$(dirname "${dir}/work/${name}")"
+        jq -r --arg n "${name}" '.files[$n]' <<< "${task}" > "${dir}/work/${name}"
+      done < <(jq -r '(.files // {}) | keys[]' <<< "${task}")
+      has_api=false
+      if jq -e 'has("api")' <<< "${task}" > /dev/null; then
+        has_api=true
+        mkdir -p "${dir}/api"
+        write_world "$(jq -c .api <<< "${task}")" "${dir}/api/world.json"
+      fi
+
+      prompt="$(jq -r .prompt <<< "${task}")"
+      if [[ "${host}" == true ]]; then
+        run_on_host "${dir}" "${prompt}" "${has_api}"
+      else
+        run_in_container "${dir}" "${prompt}" "${has_api}" "${id}"
+      fi
+    fi
+    [[ -d "${dir}" ]] || { echo "${id}: no run under ${dir}" >&2; continue; }
+    # The last message: Claude Code's `result`, Codex's last agent message;
+    # the transcript's last line otherwise.
+    answer="$(jq -rs '[.[] | select(.type == "result") | .result] | last // empty' "${dir}/transcript.jsonl" 2>/dev/null || true)"
+    if [[ -z "${answer}" ]]; then
+      answer="$(jq -rs '[.[] | (.item // .msg // {}) | select(.type == "agent_message") | .text // .message] | last // empty' "${dir}/transcript.jsonl" 2>/dev/null || true)"
+    fi
+    [[ -n "${answer}" ]] || answer="$(tail -n 1 "${dir}/transcript.jsonl")"
+    printf '%s\n' "${answer}" > "${dir}/answer.txt"
+    requests="${dir}/api/requests.log"
+    [[ -f "${requests}" ]] || requests=/dev/null
+
+    failed=() n=0
+    : > "${dir}/checks.log"
+    while read -r check; do
+      n=$((n + 1))
+      kind="$(jq -r .kind <<< "${check}")"
+      pattern="$(jq -r '.pattern // ""' <<< "${check}")"
+      glob="$(jq -r '.glob // "*"' <<< "${check}")"
+      why="$(jq -r .why <<< "${check}")"
+      ok=false
+      case "${kind}" in
+        run)
+          if run_check "${dir}" "${n}" "$(jq -r .command <<< "${check}")" >> "${dir}/checks.log" 2>&1 < /dev/null; then ok=true; fi ;;
+        files_match)
+          if [[ -n "$(matching_files "${dir}" "${glob}" "${pattern}")" ]]; then ok=true; fi ;;
+        files_exclude)
+          if [[ -z "$(matching_files "${dir}" "${glob}" "${pattern}")" ]]; then ok=true; fi ;;
+        transcript_includes)
+          if grep -qE -- "${pattern}" "${dir}/transcript.jsonl"; then ok=true; fi ;;
+        transcript_excludes)
+          if ! grep -qE -- "${pattern}" "${dir}/transcript.jsonl"; then ok=true; fi ;;
+        answer_matches)
+          if grep -qP -- "${pattern}" "${dir}/answer.txt"; then ok=true; fi ;;
+        requests_include)
+          if grep -qE -- "${pattern}" "${requests}"; then ok=true; fi ;;
+        requests_exclude)
+          if ! grep -qE -- "${pattern}" "${requests}"; then ok=true; fi ;;
+        *) echo "${id}: unknown check ${kind}" >&2; exit 2 ;;
+      esac
+      [[ "${ok}" == true ]] || failed+=("${kind}: ${why}")
+    done < <(jq -c '.checks[]' <<< "${task}")
+
+    # No local endpoint of the fake API the agent called in what it saw or
+    # left.
+    if [[ -s "${dir}/api/endpoints.env" ]]; then
+      local_endpoints="$(sed -n 's/^[A-Z_]*=http:\/\/\(127\.0\.0\.1:[0-9]*\)$/\1/p' "${dir}/api/endpoints.env")"
+      local_pattern="${local_endpoints//./\\.}"
+      local_pattern="(${local_pattern//$'\n'/|})([^0-9]|$)"
+      if grep -qE -- "${local_pattern}" "${dir}/transcript.jsonl" \
+        || [[ -n "$(matching_files "${dir}" "*" "${local_pattern}")" ]]; then
+        failed+=("local_endpoint: the agent saw, or wrote, a local endpoint of the fake API instead of the platform's hosts")
+      fi
     fi
 
-    prompt="$(jq -r .prompt <<< "${task}")"
-    if [[ "${host}" == true ]]; then
-      run_on_host "${dir}" "${prompt}" "${has_api}"
-    else
-      run_in_container "${dir}" "${prompt}" "${has_api}" "${id}"
-    fi
+    jq -cn --arg task "${id}" --arg agent "${agent}" --arg skill "${variant}" --argjson run "${run_no}" \
+      --argjson repeat "${repeat}" \
+      --argjson failed "$(printf '%s\n' "${failed[@]+"${failed[@]}"}" | jq -R . | jq -sc 'map(select(length > 0))')" \
+      '{task: $task, agent: $agent, skill: $skill} + (if $repeat > 1 then {run: $run} else {} end)
+       + {passed: ($failed | length == 0), failed: $failed}'
+    if [[ ${#failed[@]} -eq 0 ]]; then passes=$((passes + 1)); fi
+  done
+  if [[ "${repeat}" -gt 1 ]]; then
+    jq -cn --arg task "${id}" --arg agent "${agent}" --arg skill "${variant}" \
+      --argjson runs "${repeat}" --argjson passed "${passes}" \
+      '{task: $task, agent: $agent, skill: $skill, runs: $runs, passed: $passed}'
   fi
-  [[ -d "${dir}" ]] || { echo "${id}: no run under ${dir}" >&2; continue; }
-  # The last message: Claude Code's `result`, Codex's last agent message;
-  # the transcript's last line otherwise.
-  answer="$(jq -rs '[.[] | select(.type == "result") | .result] | last // empty' "${dir}/transcript.jsonl" 2>/dev/null || true)"
-  if [[ -z "${answer}" ]]; then
-    answer="$(jq -rs '[.[] | (.item // .msg // {}) | select(.type == "agent_message") | .text // .message] | last // empty' "${dir}/transcript.jsonl" 2>/dev/null || true)"
-  fi
-  [[ -n "${answer}" ]] || answer="$(tail -n 1 "${dir}/transcript.jsonl")"
-  printf '%s\n' "${answer}" > "${dir}/answer.txt"
-  requests="${dir}/api/requests.log"
-  [[ -f "${requests}" ]] || requests=/dev/null
-
-  failed=() n=0
-  : > "${dir}/checks.log"
-  while read -r check; do
-    n=$((n + 1))
-    kind="$(jq -r .kind <<< "${check}")"
-    pattern="$(jq -r '.pattern // ""' <<< "${check}")"
-    glob="$(jq -r '.glob // "*"' <<< "${check}")"
-    why="$(jq -r .why <<< "${check}")"
-    ok=false
-    case "${kind}" in
-      run)
-        if run_check "${dir}" "${n}" "$(jq -r .command <<< "${check}")" >> "${dir}/checks.log" 2>&1 < /dev/null; then ok=true; fi ;;
-      files_match)
-        if [[ -n "$(matching_files "${dir}" "${glob}" "${pattern}")" ]]; then ok=true; fi ;;
-      files_exclude)
-        if [[ -z "$(matching_files "${dir}" "${glob}" "${pattern}")" ]]; then ok=true; fi ;;
-      transcript_includes)
-        if grep -qE -- "${pattern}" "${dir}/transcript.jsonl"; then ok=true; fi ;;
-      transcript_excludes)
-        if ! grep -qE -- "${pattern}" "${dir}/transcript.jsonl"; then ok=true; fi ;;
-      answer_matches)
-        if grep -qP -- "${pattern}" "${dir}/answer.txt"; then ok=true; fi ;;
-      requests_include)
-        if grep -qE -- "${pattern}" "${requests}"; then ok=true; fi ;;
-      requests_exclude)
-        if ! grep -qE -- "${pattern}" "${requests}"; then ok=true; fi ;;
-      *) echo "${id}: unknown check ${kind}" >&2; exit 2 ;;
-    esac
-    [[ "${ok}" == true ]] || failed+=("${kind}: ${why}")
-  done < <(jq -c '.checks[]' <<< "${task}")
-
-  jq -cn --arg task "${id}" --arg agent "${agent}" --arg skill "${variant}" \
-    --argjson failed "$(printf '%s\n' "${failed[@]+"${failed[@]}"}" | jq -R . | jq -sc 'map(select(length > 0))')" \
-    '{task: $task, agent: $agent, skill: $skill, passed: ($failed | length == 0), failed: $failed}'
 done < <(jq -c '.tasks[]' "${evals}")
 echo "transcripts: ${out}" >&2
