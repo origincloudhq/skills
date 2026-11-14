@@ -565,16 +565,6 @@ pub fn sdk(inputs: &Inputs, service: &Service, problems: &mut Problems) -> Strin
                     names.push(format!("not in {}", release.version));
                 }
             }
-            let mut notes = method_notes(m, false);
-            let required: Vec<String> = m
-                .fields
-                .iter()
-                .filter(|f| f.has(Behavior::Required))
-                .map(|f| format!("`{}`", f.name))
-                .collect();
-            if !required.is_empty() {
-                notes.push(format!("requires {}", required.join(", ")));
-            }
             let _ = writeln!(
                 out,
                 "| `{}` (`{}`) | {} | {} | {} | {} |",
@@ -583,7 +573,7 @@ pub fn sdk(inputs: &Inputs, service: &Service, problems: &mut Problems) -> Strin
                 names[0],
                 names[1],
                 names[2],
-                cell(format!("{} {}", first_sentence(&m.about), notes.join("; ")).trim_end())
+                cell(&sdk_notes(m))
             );
         }
         out.push('\n');
@@ -594,6 +584,39 @@ pub fn sdk(inputs: &Inputs, service: &Service, problems: &mut Problems) -> Strin
     );
     out.push_str(&resources(service));
     out
+}
+
+/// A method's cell in the SDK reference's table: its description's first
+/// sentence, then its notes, joined with semicolons. A note that ends with
+/// a period, as a one-way change's consequence and the reason a method has
+/// no MCP tool do, loses it there, so that no `;` follows a period.
+fn sdk_notes(m: &Method) -> String {
+    let mut notes = method_notes(m, false);
+    let required: Vec<String> = m
+        .fields
+        .iter()
+        .filter(|f| f.has(Behavior::Required))
+        .map(|f| format!("`{}`", f.name))
+        .collect();
+    if !required.is_empty() {
+        notes.push(format!("requires {}", required.join(", ")));
+    }
+    let last = notes.len().saturating_sub(1);
+    let notes: Vec<&str> = notes
+        .iter()
+        .enumerate()
+        .map(|(i, n)| {
+            let n = n.trim_end();
+            if i < last {
+                n.trim_end_matches('.')
+            } else {
+                n
+            }
+        })
+        .collect();
+    format!("{} {}", first_sentence(&m.about), notes.join("; "))
+        .trim()
+        .to_owned()
 }
 
 // ---------------------------------------------------------------- SKILL.md
@@ -623,4 +646,81 @@ pub fn reference_map(services: &[Service], workflows: &[String]) -> String {
         );
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn method(one_way: &[(&str, &str)], no_tool: Option<&str>) -> Method {
+        Method {
+            name: "UpdateVolume".to_owned(),
+            full_name: "origincloud.pvs.v1beta1.VolumeService.UpdateVolume".to_owned(),
+            kind: Kind2::Update,
+            about: "Changes a volume's size or tags. More about it.".to_owned(),
+            resource: None,
+            request: "UpdateVolumeRequest".to_owned(),
+            long_running: Some("Volume".to_owned()),
+            delete: false,
+            one_way: one_way
+                .iter()
+                .map(|(f, c)| ((*f).to_owned(), (*c).to_owned()))
+                .collect(),
+            no_tool: no_tool.map(str::to_owned),
+            request_id: true,
+            items: None,
+            fields: vec![Field {
+                name: "volume".to_owned(),
+                json_name: "volume".to_owned(),
+                type_label: "Volume".to_owned(),
+                behaviors: vec![Behavior::Required],
+                reference: None,
+                oneof: None,
+                values: Vec::new(),
+                about: String::new(),
+            }],
+        }
+    }
+
+    #[test]
+    fn a_consequence_is_not_followed_by_a_semicolon() {
+        let m = method(
+            &[(
+                "volume.size_gib",
+                "A volume never shrinks back, and its larger size is charged.",
+            )],
+            None,
+        );
+        assert_eq!(
+            sdk_notes(&m),
+            "Changes a volume's size or tags. **ask first** when changing `volume.size_gib`: \
+             A volume never shrinks back, and its larger size is charged; answers with an \
+             operation: wait for it; its result is a `Volume`; a retry with the same \
+             `request_id` is safe; requires `volume`"
+        );
+    }
+
+    #[test]
+    fn no_note_ends_in_a_period_before_the_next() {
+        let m = method(&[], Some("A tool would hand out a credential."));
+        let text = sdk_notes(&m);
+        assert!(text.contains("no MCP tool: A tool would hand out a credential; requires"));
+        assert!(!text.contains(".;"), "{text}");
+    }
+
+    #[test]
+    fn the_last_note_keeps_its_period() {
+        let mut m = method(&[], Some("A tool would hand out a credential."));
+        m.fields.clear();
+        assert!(sdk_notes(&m).ends_with("a credential."));
+    }
+
+    #[test]
+    fn a_method_without_notes_is_its_description() {
+        let mut m = method(&[], None);
+        m.long_running = None;
+        m.request_id = false;
+        m.fields.clear();
+        assert_eq!(sdk_notes(&m), "Changes a volume's size or tags.");
+    }
 }
