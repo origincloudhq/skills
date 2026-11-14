@@ -158,13 +158,21 @@ attachment only after the volume's operation was done. The fake API serves
 each service on a port of its own, as the CLI takes them
 (`ORIGINCLOUD_{SERVICE}_ENDPOINT`), and all of them on one more,
 `EVAL_ENDPOINT`, for a client that takes one endpoint, as the provider's
-`endpoint` does. In the agent's container, the platform's hosts
+`endpoint` does; there, the host a request names says whose service it is.
+In the agent's container, the platform's hosts
 (`pvs.origincloudapis.eu`, `pvs.eu-central1.origincloudapis.eu`, …) are
-the fake API too, through TLS with a certificate from a CA the image
-trusts (`evals/bin/eval-fake-api`), and the `origin` CLI's login session is
-where the provider and the SDKs look for one: an agent's own `tofu plan`,
-or the program it wrote, calls the fake API as it would call the platform,
-and its requests are in the log.
+the fake API, through TLS with a certificate from a CA the image trusts
+(`evals/bin/eval-fake-api`). The `origin` there is the CLI release itself,
+calling the hosts it calls on the platform, and its login session is where
+the provider and the SDKs look for one: the CLI, an agent's own
+`tofu plan`, or the program it wrote, call the fake API as they would call
+the platform, and their requests are in the log. Nothing the agent sees
+names the fake API's local endpoints (`127.0.0.1:{port}`), and a task with
+an `api` fails when its transcript, or a file the agent left, names one:
+an agent that saw one could copy it where only the platform's host
+belongs. With `--host` there is no TLS front: the `origin` there is a
+wrapper that sends the CLI's calls to the local endpoints, and the
+provider and the SDKs can't reach the fake API.
 
 A `run` check runs in a container of the same image, without a network,
 through `evals/bin/eval-check`. A task with an `api` gives the check a fake
@@ -178,6 +186,11 @@ for an import, plans to change nothing.
 `--regrade` runs no agent and checks a run's directory (`EVAL_OUT`) again,
 in the run's image (on this machine with `--host`),
 after a check changed.
+
+`--repeat N` runs each task N times and adds a line per task with how many
+of its runs passed, for a measure of the variance between runs. Every run
+costs the model provider's tokens: one run is the default, and N is for
+when a result needs it.
 
 A change to a skill's hand-written parts says in its pull request how the
 evals came out, with and without the skill.

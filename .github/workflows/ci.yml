@@ -91,6 +91,34 @@ jobs:
             docker run --rm --entrypoint /opt/origin/origin "eval-${agent}" --version
           done
 
+      # The `origin` the agent calls reaches the fake API at the platform's
+      # hosts, through the TLS front, as scripts/eval.sh runs it: no local
+      # endpoint in its output, and the request in the fake API's log.
+      - name: The CLI through the TLS front
+        run: |
+          mkdir -p tls/api tls/work && chmod -R a+rwX tls
+          cp skills/origin/evals/worlds/shop.json tls/api/world.json
+          hosts=()
+          for reference in skills/origin/references/*.md; do
+            service="$(basename "${reference}" .md)"
+            [[ "${service}" != *-* ]] || continue
+            hosts+=(--add-host "${service}.origincloudapis.eu:127.0.0.1"
+              --add-host "${service}.eu-central1.origincloudapis.eu:127.0.0.1")
+          done
+          docker run -d --name fake-api --network none --user "$(id -u):$(id -g)" \
+            --sysctl net.ipv4.ip_unprivileged_port_start=0 "${hosts[@]}" \
+            -v "${PWD}/tls/api:/api" --entrypoint /usr/local/bin/eval-fake-api eval-claude \
+            --world /api/world.json --log /api/requests.log --env /api/endpoints.env
+          for _ in $(seq 300); do [[ -s tls/api/endpoints.env ]] && break; sleep 0.1; done
+          docker run --rm --network container:fake-api --user "$(id -u):$(id -g)" \
+            -v "${PWD}/tls/work:/work" -e ORIGIN_EVAL_API=1 \
+            -e ORIGIN_EVAL_PROFILE="$(jq -c .profile tls/api/world.json)" \
+            eval-claude origin pvs list-volumes --output json > tls/out.json 2> tls/err.log
+          jq -e '.volumes | length > 0' tls/out.json
+          grep -E '^GET /v1[a-z0-9]*/projects/shop-prod/zones/[a-z0-9-]+/volumes 200' tls/api/requests.log
+          if grep -n '127\.0\.0\.1' tls/out.json tls/err.log; then exit 1; fi
+          docker rm -f fake-api
+
       # One agent's images for the Terraform and SDK skills: the toolchains
       # come before the agent's layer, so the other agent's would differ in
       # that layer alone.

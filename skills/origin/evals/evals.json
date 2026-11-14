@@ -41,6 +41,35 @@
       ]
     },
     {
+      "id": "read-volumes-full-names",
+      "api": {
+        "world": "worlds/shop.json"
+      },
+      "prompt": "Which volumes in my Origin Cloud project are larger than 40 GiB and not attached to anything? Our asset inventory keys every cloud resource by its full resource name, so give me each one's full resource name and size.",
+      "checks": [
+        {
+          "kind": "requests_include",
+          "pattern": "^GET /v1beta1/projects/shop-prod/zones/eu-central1-az1/volumes 200",
+          "why": "The agent lists the volumes of the user's project."
+        },
+        {
+          "kind": "answer_matches",
+          "pattern": "//pvs\\.origincloudapis\\.eu/projects/shop-prod/zones/eu-central1-az1/volumes/vol-archive",
+          "why": "The unattached 500 GiB volume is given by its full name: its service's host and its relative name."
+        },
+        {
+          "kind": "answer_matches",
+          "pattern": "//pvs\\.origincloudapis\\.eu/projects/shop-prod/zones/eu-central1-az1/volumes/vol-scratch",
+          "why": "The unattached 50 GiB volume is given by its full name."
+        },
+        {
+          "kind": "requests_exclude",
+          "pattern": "^(POST|PATCH|DELETE) ",
+          "why": "Nothing is created, changed or deleted."
+        }
+      ]
+    },
+    {
       "id": "no-project-asks",
       "api": {
         "world": "worlds/shop.json",
@@ -221,6 +250,80 @@
       ]
     },
     {
+      "id": "launch-into-subnet-being-created",
+      "api": {
+        "world": "worlds/shop.json",
+        "resources": [
+          {
+            "name": "projects/shop-prod/zones/eu-central1-az1/subnets/sub-batch",
+            "vpc": "projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
+            "state": "CREATING",
+            "createTime": "2026-11-13T09:59:00Z",
+            "tags": {
+              "origin:name": "batch"
+            }
+          }
+        ],
+        "operations": [
+          {
+            "name": "projects/shop-prod/zones/eu-central1-az1/operations/op-9b2e",
+            "done_after_secs": 60,
+            "response": {
+              "@type": "type.googleapis.com/origincloud.network.v1beta1.Subnet",
+              "name": "projects/shop-prod/zones/eu-central1-az1/subnets/sub-batch",
+              "vpc": "projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
+              "ipv4CidrBlock": "10.20.3.0/24",
+              "state": "AVAILABLE",
+              "tags": {
+                "origin:name": "batch"
+              }
+            },
+            "upsert": [
+              {
+                "name": "projects/shop-prod/zones/eu-central1-az1/subnets/sub-batch",
+                "vpc": "projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
+                "ipv4CidrBlock": "10.20.3.0/24",
+                "availableIpv4AddressCount": 250,
+                "state": "AVAILABLE",
+                "createTime": "2026-11-13T09:59:00Z",
+                "tags": {
+                  "origin:name": "batch"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "prompt": "A colleague just started creating a subnet for our batch jobs in my Origin Cloud project, and origin printed the operation projects/shop-prod/zones/eu-central1-az1/operations/op-9b2e. Launch a small Debian 12 instance named batch-1 in that subnet, with our ops key pair, and tell me once it's running.",
+      "checks": [
+        {
+          "kind": "requests_exclude",
+          "pattern": "^POST [^ ]*/(networkInterfaces|instances)\\?[^ ]* 4[0-9][0-9]",
+          "why": "Nothing is created in the subnet while it is still being created: the agent waits for its operation first."
+        },
+        {
+          "kind": "requests_include",
+          "pattern": "^POST [^ ]*/zones/eu-central1-az1/networkInterfaces\\?[^ ]* 200 .*subnets/sub-batch",
+          "why": "The instance's interface is in the new subnet."
+        },
+        {
+          "kind": "requests_include",
+          "pattern": "^POST [^ ]*/zones/eu-central1-az1/instances\\?[^ ]* 200 .*imageFamilies/debian-12",
+          "why": "The instance is launched from the Debian 12 family."
+        },
+        {
+          "kind": "requests_exclude",
+          "pattern": "^POST [^ ]*/subnets\\?",
+          "why": "The agent uses the subnet the colleague is creating, not one of its own."
+        },
+        {
+          "kind": "requests_exclude",
+          "pattern": "^(PATCH|DELETE) ",
+          "why": "Nothing that exists is changed or deleted."
+        }
+      ]
+    },
+    {
       "id": "open-https-and-ping",
       "api": {
         "world": "worlds/shop.json"
@@ -270,6 +373,45 @@
           "kind": "requests_exclude",
           "pattern": "^DELETE ",
           "why": "Nothing is deleted."
+        }
+      ]
+    },
+    {
+      "id": "grant-after-a-dropped-connection",
+      "api": {
+        "world": "worlds/shop.json",
+        "resources": [
+          {
+            "name": "organizations/org-acme/roleBindings/rb-ci-admin",
+            "member": "serviceAccount:sa-ci",
+            "role": "roles/compute.admin",
+            "project": "projects/shop-prod",
+            "creator": "user:dana@acme-shop.example",
+            "createTime": "2026-11-13T07:58:00Z"
+          }
+        ]
+      },
+      "prompt": "This morning I tried to let our CI service account ci-deployer launch and terminate instances in the Origin Cloud project shop-prod, and nowhere else, with origin iam create-role-binding, but my connection dropped before the command answered. Please sort it out.",
+      "checks": [
+        {
+          "kind": "requests_include",
+          "pattern": "^GET /v1beta1/organizations/org-acme/roleBindings[^ ]* 200",
+          "why": "Unsure whether the change took effect, the agent reads the bindings first."
+        },
+        {
+          "kind": "requests_exclude",
+          "pattern": "^POST [^ ]*/roleBindings",
+          "why": "The first attempt went through: no second binding is made."
+        },
+        {
+          "kind": "answer_matches",
+          "pattern": "(?i)(already|succeeded|went through|rb-ci-admin)",
+          "why": "The agent tells the user the first attempt went through."
+        },
+        {
+          "kind": "requests_exclude",
+          "pattern": "^(PATCH|DELETE) ",
+          "why": "Nothing is changed or deleted."
         }
       ]
     },

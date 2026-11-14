@@ -122,6 +122,26 @@ takes the parts of its name (`project`, `zone` or `region`, `organization`)
 as arguments; use variables for them rather than repeating literals. Refer
 to another resource through its attributes, not by copying a name.
 
+**What the configuration doesn't manage.** A resource the user names that
+Terraform doesn't manage, such as "our VPC web", is referred to by its
+`name` as the API answers it, never by one built from the name the user
+gave: that is its `origin:name` tag, and its id is another, such as
+`vpc-4d5e6f`. Read it first, with the `origin` CLI
+(`origin network list-vpcs --output json`) or the plural data source,
+filtered by the tag:
+
+```hcl
+data "origincloud_network_vpcs" "all" {
+  project = var.project
+  region  = var.region
+}
+
+locals {
+  vpc = one([for v in data.origincloud_network_vpcs.all.vpcs : v.name
+    if try(v.tags["origin:name"], "") == "web"])
+}
+```
+
 **Arguments.** The references give each type's arguments: `required`,
 `optional`, `computed` (set by the API, read-only) and `replaces`: changing
 one destroys the resource and creates a new one. A replacement deletes

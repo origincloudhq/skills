@@ -13,12 +13,74 @@
       ]
     },
     {
+      "id": "go-retry-creates-once",
+      "prompt": "Write a Go program in this directory (with its go.mod) that uses the Origin Cloud Go SDK to create a 10 GiB volume in project my-project-123, zone eu-central1-az1, and prints the volume's name once the volume is ready. It runs in a nightly job on a flaky network: when creating the volume fails with an error that may be temporary, it tries again, up to 5 times. It must build with go build. Don't run it.",
+      "api": {"world": "worlds/platform.json"},
+      "checks": [
+        { "kind": "run", "command": "go build ./...", "why": "The program uses the SDK's real names." },
+        { "kind": "files_match", "glob": "*.go", "pattern": "RequestId *(:|=)|WithMaxAttempts", "why": "Every retry of the create carries the first attempt's request_id, so a create that went through but whose answer was lost isn't made twice: the program sets it for retries of its own, or leaves the retries to the SDK, which fills it in once (WithMaxAttempts)." },
+        { "kind": "files_match", "glob": "*.go", "pattern": "\\.Wait\\(ctx", "why": "It waits for the operation before using the result." },
+        { "kind": "requests_exclude", "pattern": "^POST /v1beta1/projects/my-project-123/zones/eu-central1-az1/volumes", "why": "It isn't run: the user said not to." }
+      ]
+    },
+    {
       "id": "typescript-every-page",
       "prompt": "Write a TypeScript script list.ts in this directory (with package.json and tsconfig.json) that uses the Origin Cloud TypeScript SDK to print the name and state of every instance in project my-project-123, zone eu-central1-az1, however many there are. It must type-check with npx tsc --noEmit. Don't run it.",
       "api": {"world": "worlds/platform.json"},
       "checks": [
         { "kind": "run", "command": "npm install --silent >/dev/null && npx tsc --noEmit", "why": "The script uses the SDK's real names." },
         { "kind": "files_match", "glob": "*.ts", "pattern": "allInstances|nextPageToken", "why": "It reads every page, not only the first." }
+      ]
+    },
+    {
+      "id": "typescript-wait-then-attach",
+      "prompt": "In Origin Cloud project my-project-123, zone eu-central1-az1, I started creating a volume for the reports service, and the API answered with the operation projects/my-project-123/zones/eu-central1-az1/operations/op-7f3a. Write a TypeScript script attach.ts in this directory (with package.json and tsconfig.json) that uses the Origin Cloud TypeScript SDK to attach that volume to the instance web-1 as soon as the volume is ready, and run it.",
+      "api": {
+        "world": "worlds/platform.json",
+        "resources": [
+          {
+            "name": "projects/my-project-123/zones/eu-central1-az1/volumes/vol-reports",
+            "sizeGib": 40,
+            "storageClass": "storageClasses/gp1",
+            "state": "CREATING",
+            "tags": {
+              "origin:name": "reports"
+            }
+          }
+        ],
+        "operations": [
+          {
+            "name": "projects/my-project-123/zones/eu-central1-az1/operations/op-7f3a",
+            "done_after_secs": 150,
+            "response": {
+              "@type": "type.googleapis.com/origincloud.pvs.v1beta1.Volume",
+              "name": "projects/my-project-123/zones/eu-central1-az1/volumes/vol-reports",
+              "sizeGib": 40,
+              "storageClass": "storageClasses/gp1",
+              "state": "AVAILABLE",
+              "tags": {
+                "origin:name": "reports"
+              }
+            },
+            "upsert": [
+              {
+                "name": "projects/my-project-123/zones/eu-central1-az1/volumes/vol-reports",
+                "sizeGib": 40,
+                "storageClass": "storageClasses/gp1",
+                "state": "AVAILABLE",
+                "resizeState": "RESIZE_COMPLETED",
+                "tags": {
+                  "origin:name": "reports"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "checks": [
+        { "kind": "run", "command": "npm install --silent >/dev/null && npx tsc --noEmit", "why": "The script uses the SDK's real names." },
+        { "kind": "requests_exclude", "pattern": "/volumeAttachments[^ ]* 4[0-9][0-9]", "why": "The script attaches the volume only once its operation is done, and names it and the instance as the API does." },
+        { "kind": "requests_include", "pattern": "^POST /v1beta1/projects/my-project-123/zones/eu-central1-az1/instances/i-0001a1/volumeAttachments[^ ]* 200 .*\"volume\":\"projects/my-project-123/zones/eu-central1-az1/volumes/vol-reports\"", "why": "The volume ends up attached to web-1, the instance whose origin:name it is, by the volume's name." }
       ]
     },
     {

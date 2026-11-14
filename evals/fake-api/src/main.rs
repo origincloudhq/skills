@@ -12,8 +12,12 @@
 //! to `--env` once it listens, as the CLI takes them. It serves every
 //! service on one more port too, `EVAL_ENDPOINT=http://…`, for a client
 //! that sends all its calls to one endpoint, as the provider's `endpoint`
-//! and the SDKs' endpoint option do: there, the collections a path names
-//! say whose service it is ([`world::service_of`]). The world (see [`World`]) holds the
+//! and the SDKs' endpoint option do, and for the TLS front that answers at
+//! the platform's hosts (`evals/bin/eval-fake-api`): there, the host a
+//! request names, `pvs.origincloudapis.eu` or
+//! `pvs.eu-central1.origincloudapis.eu`, says whose service it is, and
+//! without one, the collections its path names do
+//! ([`world::service_of`]). The world (see [`World`]) holds the
 //! resources by their names, canned answers for methods it doesn't model,
 //! and operations already under way. Reads, lists, creates, updates,
 //! deletes and other methods on a resource behave as the API's standard
@@ -107,7 +111,7 @@ async fn main() -> Result<()> {
     let server = FakeServer::start(move |request: Received| {
         let state = Arc::clone(&all);
         async move {
-            let service = world::service_of(&request.path).unwrap_or("location");
+            let service = service_for(&request);
             serve(&state, service, request).await
         }
     })
@@ -126,6 +130,27 @@ async fn main() -> Result<()> {
     }
     drop(servers);
     Ok(())
+}
+
+/// The service a request to the one endpoint for every service is for:
+/// the one its host names, as a client calling the platform's hosts through
+/// the TLS front sends it, else the one its path names.
+fn service_for(request: &Received) -> &'static str {
+    request
+        .header("host")
+        .and_then(service_of_host)
+        .or_else(|| world::service_of(&request.path))
+        .unwrap_or("location")
+}
+
+/// The service a platform host is, by its first label:
+/// `pvs.origincloudapis.eu`, `pvs.eu-central1.origincloudapis.eu`, with or
+/// without a port.
+fn service_of_host(host: &str) -> Option<&'static str> {
+    let host = host.rsplit_once(':').map_or(host, |(h, _)| h);
+    let rest = host.strip_suffix(".origincloudapis.eu")?;
+    let first = rest.split('.').next()?;
+    SERVICES.iter().copied().find(|s| *s == first)
 }
 
 /// Answers one request, waiting first when it waits on an operation.
@@ -161,4 +186,21 @@ async fn serve(state: &Mutex<State>, service: &str, request: Received) -> Respon
     // shows in its timing.
     tokio::time::sleep(Duration::from_millis(20)).await;
     Response::json(text).with_status(status)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::service_of_host;
+
+    #[test]
+    fn a_host_names_its_service() {
+        assert_eq!(service_of_host("pvs.origincloudapis.eu"), Some("pvs"));
+        assert_eq!(
+            service_of_host("billing.eu-central1.origincloudapis.eu:443"),
+            Some("billing")
+        );
+        assert_eq!(service_of_host("graph.origincloudapis.eu"), None);
+        assert_eq!(service_of_host("127.0.0.1:41234"), None);
+        assert_eq!(service_of_host("pvs.example.com"), None);
+    }
 }
