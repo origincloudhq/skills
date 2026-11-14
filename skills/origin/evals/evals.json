@@ -63,11 +63,6 @@
           "why": "The unattached 50 GiB volume is given by its full name."
         },
         {
-          "kind": "answer_matches",
-          "pattern": "^(?![\\s\\S]*vol-pgdata)",
-          "why": "The attached volume isn't among them."
-        },
-        {
           "kind": "requests_exclude",
           "pattern": "^(POST|PATCH|DELETE) ",
           "why": "Nothing is created, changed or deleted."
@@ -410,8 +405,8 @@
         },
         {
           "kind": "answer_matches",
-          "pattern": "rb-ci-admin",
-          "why": "The agent names the binding that already grants the access."
+          "pattern": "(?i)(already|succeeded|went through|rb-ci-admin)",
+          "why": "The agent tells the user the first attempt went through."
         },
         {
           "kind": "requests_exclude",

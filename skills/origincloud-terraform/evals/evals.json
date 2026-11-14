@@ -195,7 +195,7 @@
         {
           "kind": "files_match",
           "glob": "*.tf",
-          "pattern": "id *= *\"projects/(my-project-123|\\$\\{[a-z_.]+\\})/zones/(eu-central1-az1|\\$\\{[a-z_.]+\\})/instances/i-0db1/volumeAttachments/att-9f41\"",
+          "pattern": "id *= *\"projects/(my-project-123|\\$\\{[a-z_.]+\\})/zones/(eu-central1-az1|\\$\\{[a-z_.]+\\})/instances/(i-0db1|\\$\\{[a-z_.]+\\})/volumeAttachments/att-9f41\"",
           "why": "The attachment's import id is its name, as the API answered it, not one built from the instance's display name."
         },
         {

@@ -18,7 +18,7 @@
       "api": {"world": "worlds/platform.json"},
       "checks": [
         { "kind": "run", "command": "go build ./...", "why": "The program uses the SDK's real names." },
-        { "kind": "files_match", "glob": "*.go", "pattern": "RequestId *(:|=)", "why": "The create carries a request_id, which the program keeps for every retry, so a create that went through but whose answer was lost isn't made twice." },
+        { "kind": "files_match", "glob": "*.go", "pattern": "RequestId *(:|=)|WithMaxAttempts", "why": "Every retry of the create carries the first attempt's request_id, so a create that went through but whose answer was lost isn't made twice: the program sets it for retries of its own, or leaves the retries to the SDK, which fills it in once (WithMaxAttempts)." },
         { "kind": "files_match", "glob": "*.go", "pattern": "\\.Wait\\(ctx", "why": "It waits for the operation before using the result." },
         { "kind": "requests_exclude", "pattern": "^POST /v1beta1/projects/my-project-123/zones/eu-central1-az1/volumes", "why": "It isn't run: the user said not to." }
       ]
