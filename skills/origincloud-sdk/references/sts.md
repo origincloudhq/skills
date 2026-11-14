@@ -25,7 +25,7 @@ The security token service: it turns a token from an identity provider outside O
 
 | RPC | Rust | Go | TypeScript | Notes |
 |---|---|---|---|---|
-| `AssumeServiceAccount` (`AssumeServiceAccountRequest`) | `assume_service_account` | `AssumeServiceAccount` | `assumeServiceAccount` | Assumes a `WORKLOAD` service account with an OIDC token. no MCP tool: Assuming a service account answers with its access token; a tool would put working credentials into the model's context, and an agent already has its own. CI jobs assume one through the SDKs and the CLI.; requires `oidc_token` |
+| `AssumeServiceAccount` (`AssumeServiceAccountRequest`) | `assume_service_account` | `AssumeServiceAccount` | `assumeServiceAccount` | Assumes a `WORKLOAD` service account with an OIDC token. no MCP tool: Assuming a service account answers with its access token; a tool would put working credentials into the model's context, and an agent already has its own. CI jobs assume one through the SDKs and the CLI; requires `oidc_token` |
 
 Field names: Rust uses the proto names (`size_gib`), Go protoc-gen-go's (`SizeGib`), TypeScript the JSON names (`sizeGib`).
 
