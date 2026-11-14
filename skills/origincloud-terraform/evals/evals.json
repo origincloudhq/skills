@@ -50,6 +50,69 @@
       }
     },
     {
+      "id": "instance-in-existing-vpc",
+      "prompt": "Write a Terraform configuration in this directory for Origin Cloud, project my-project-123: a new subnet in zone eu-central1-az1 in our existing VPC \"shop\" (the VPC isn't managed by Terraform and should stay that way), a security group that allows SSH only from 203.0.113.0/24, and a Debian 12 instance in that subnet. Make it pass terraform validate. Don't apply anything.",
+      "api": {
+        "world": "worlds/platform.json",
+        "resources": [
+          {
+            "name": "projects/my-project-123/regions/eu-central1/vpcs/vpc-7c1e",
+            "ipv4CidrBlock": "10.40.0.0/16",
+            "subnetIpv4PrefixLength": 24,
+            "availableSubnetCount": 254,
+            "createTime": "2026-09-02T10:00:00Z",
+            "tags": {
+              "origin:name": "shop"
+            }
+          },
+          {
+            "name": "projects/my-project-123/regions/eu-central1/vpcs/vpc-default",
+            "ipv4CidrBlock": "10.0.0.0/16",
+            "projectDefault": true,
+            "createTime": "2026-09-01T08:05:00Z",
+            "tags": {
+              "origin:name": "default"
+            }
+          }
+        ]
+      },
+      "checks": [
+        {
+          "kind": "run",
+          "command": "tofu init -backend=false -input=false >/dev/null && tofu validate",
+          "why": "The HCL uses the provider's real types and arguments."
+        },
+        {
+          "kind": "run",
+          "command": "tofu init -backend=false -input=false >/dev/null && eval-tofu-plan | grep -E 'Plan: [0-9]+ to add, 0 to change, 0 to destroy'",
+          "why": "It plans without errors against the API, adding and nothing else."
+        },
+        {
+          "kind": "files_exclude",
+          "glob": "*.tf",
+          "pattern": "resource +\"origincloud_network_vpc\"|to *= *origincloud_network_vpc\\.",
+          "why": "The VPC stays outside Terraform: neither created nor imported."
+        },
+        {
+          "kind": "files_exclude",
+          "glob": "*.tf",
+          "pattern": "vpcs/shop\"",
+          "why": "The VPC isn't named by its display name: its name is what the API answers, vpc-7c1e."
+        },
+        {
+          "kind": "files_match",
+          "glob": "*.tf",
+          "pattern": "vpc-7c1e|data +\"origincloud_network_vpcs\"",
+          "why": "The subnet's VPC is the existing one, by the name the API gave it or read through the provider's data source."
+        },
+        {
+          "kind": "transcript_excludes",
+          "pattern": "\"command\":\"([^\"\\\\]|\\\\.)*(terraform|tofu)( [^ &;|]+)* apply",
+          "why": "Nothing is applied."
+        }
+      ]
+    },
+    {
       "id": "import-existing-volume",
       "prompt": "The Origin Cloud volume projects/my-project-123/zones/eu-central1-az1/volumes/vol-1a2b3c already exists and holds data. Bring it under Terraform in this directory without changing or recreating it. Don't apply anything.",
       "checks": [
@@ -85,6 +148,67 @@
       "api": {
         "world": "worlds/platform.json"
       }
+    },
+    {
+      "id": "import-attached-volume",
+      "prompt": "The Origin Cloud volume projects/my-project-123/zones/eu-central1-az1/volumes/vol-1a2b3c holds our database's data and is attached to the instance db-1. Bring the volume and its attachment under Terraform in this directory, without changing, detaching or recreating either. Don't apply anything.",
+      "api": {
+        "world": "worlds/platform.json",
+        "resources": [
+          {
+            "name": "projects/my-project-123/zones/eu-central1-az1/volumes/vol-1a2b3c",
+            "sizeGib": 100,
+            "storageClass": "storageClasses/gp1",
+            "state": "IN_USE",
+            "resizeState": "RESIZE_COMPLETED",
+            "attachment": "projects/my-project-123/zones/eu-central1-az1/instances/i-0db1/volumeAttachments/att-9f41",
+            "createTime": "2026-10-02T09:00:00Z"
+          },
+          {
+            "name": "projects/my-project-123/zones/eu-central1-az1/instances/i-0db1",
+            "instanceType": "instanceTypes/gp1.core.4",
+            "imageFamily": "imageFamilies/debian-12",
+            "image": "zones/eu-central1-az1/images/img-debian-12-20261101",
+            "state": "RUNNING",
+            "loginUser": "debian",
+            "createTime": "2026-10-02T08:55:00Z",
+            "tags": {
+              "origin:name": "db-1"
+            }
+          },
+          {
+            "name": "projects/my-project-123/zones/eu-central1-az1/instances/i-0db1/volumeAttachments/att-9f41",
+            "volume": "projects/my-project-123/zones/eu-central1-az1/volumes/vol-1a2b3c",
+            "device": "vdb",
+            "boot": false,
+            "state": "ATTACHED"
+          }
+        ]
+      },
+      "checks": [
+        {
+          "kind": "files_match",
+          "glob": "*.tf",
+          "pattern": "to *= *origincloud_compute_volume_attachment\\.",
+          "why": "The attachment is imported as the provider's attachment type."
+        },
+        {
+          "kind": "files_match",
+          "glob": "*.tf",
+          "pattern": "id *= *\"projects/(my-project-123|\\$\\{[a-z_.]+\\})/zones/(eu-central1-az1|\\$\\{[a-z_.]+\\})/instances/i-0db1/volumeAttachments/att-9f41\"",
+          "why": "The attachment's import id is its name, as the API answered it, not one built from the instance's display name."
+        },
+        {
+          "kind": "run",
+          "command": "tofu init -backend=false -input=false >/dev/null && eval-tofu-plan | grep -E 'Plan: 2 to import, 0 to add, 0 to change, 0 to destroy'",
+          "why": "The plan imports both as they are: nothing changed, replaced, detached or added."
+        },
+        {
+          "kind": "transcript_excludes",
+          "pattern": "\"command\":\"([^\"\\\\]|\\\\.)*(terraform|tofu)( [^ &;|]+)* apply",
+          "why": "Nothing is applied."
+        }
+      ]
     },
     {
       "id": "replacement-needs-a-yes",

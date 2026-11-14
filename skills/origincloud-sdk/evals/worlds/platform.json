@@ -160,13 +160,18 @@
     }
   ],
   "ids": {
-    "volumes": "vol"
+    "volumes": "vol",
+    "volumeAttachments": "att"
   },
   "created": {
     "volumes": {
       "state": "AVAILABLE",
       "storageClass": "storageClasses/gp1",
       "resizeState": "RESIZE_COMPLETED"
+    },
+    "volumeAttachments": {
+      "state": "ATTACHED",
+      "device": "vdb"
     }
   }
 }
