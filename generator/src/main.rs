@@ -101,7 +101,10 @@ fn generate(root: &Path, inputs: &Path) -> Result<BTreeMap<PathBuf, String>> {
         }
     }
 
-    let tree = cli::Tree::load(&inputs.join("commands.json"))?;
+    let table = inputs.join("cli-commands.toml");
+    let table =
+        std::fs::read_to_string(&table).with_context(|| format!("reading {}", table.display()))?;
+    let tree = cli::Tree::load(&inputs.join("commands.json"))?.with_table(&table)?;
     ensure!(
         tree.cli_version == clients.cli.version,
         "commands.json is origin {}'s, but clients.toml pins {}",
@@ -481,6 +484,25 @@ mod tests {
             problems,
             ["origin 1.0.0 has no command for origincloud.keys.v1.KeyService.LengthenKey"]
         );
+    }
+
+    /// A method the CLI release leaves without a command on purpose, by its
+    /// `[[no_command]]` list, is no problem, and the reference gives the
+    /// release's reason.
+    #[test]
+    fn a_method_the_cli_leaves_out_is_listed_with_its_reason() {
+        let mut f = fixture();
+        let tree: cli::Tree = serde_json::from_str(COMMANDS).unwrap();
+        f.tree = tree
+            .with_table(
+                "hand_written = []\n[[no_command]]\nservice = \"keys\"\nmethod = \"LengthenKey\"\nwhy = \"Not yet.\"\n",
+            )
+            .unwrap();
+        let sdks = BTreeMap::new();
+        let mut problems = Vec::new();
+        let text = render::origin(&inputs(&f, &sdks, "abc"), &f.services[0], &mut problems);
+        assert!(problems.is_empty(), "{problems:?}");
+        assert!(text.contains("- `LengthenKey`: Not yet."), "{text}");
     }
 
     #[test]

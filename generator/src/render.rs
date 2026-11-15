@@ -258,13 +258,14 @@ pub fn origin(inputs: &Inputs, service: &Service, problems: &mut Problems) -> St
     for i in &service.interfaces {
         for m in &i.methods {
             let Some(c) = command_of(m) else {
-                if current && m.no_tool.is_none() {
+                let left_out = tree.no_command(&service.name, &m.name);
+                if current && m.no_tool.is_none() && left_out.is_none() {
                     problems.push(format!(
                         "origin {version} has no command for {}",
                         m.full_name
                     ));
                 }
-                missing.push(m);
+                missing.push((m, left_out));
                 continue;
             };
             let _ = writeln!(out, "### `origin {}`\n", c.path.join(" "));
@@ -312,8 +313,12 @@ pub fn origin(inputs: &Inputs, service: &Service, problems: &mut Problems) -> St
     }
     if !missing.is_empty() {
         let _ = writeln!(out, "## Not in origin {version}\n");
-        for m in missing {
-            let reason = m.no_tool.as_deref().unwrap_or("not in this release");
+        for (m, left_out) in missing {
+            let reason = m
+                .no_tool
+                .as_deref()
+                .or(left_out)
+                .unwrap_or("not in this release");
             let _ = writeln!(out, "- `{}`: {}", m.name, reason);
         }
         out.push('\n');
