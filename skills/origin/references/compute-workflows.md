@@ -3,9 +3,9 @@
 Written by hand; the commands and flags are in [compute.md](compute.md).
 Read every output with `--output json`. Examples leave out `--project`,
 `--zone` and `--region`: they use the profile's, so pass them when the user
-works elsewhere. `<…>` is a resource's full name, or its `name` as a
-command printed it; a resource another command made is named by the `name`
-it printed.
+works elsewhere. `<…>` is a resource's full name, its service's host in
+front of the `name` a command printed; a resource another command made is
+named that way, as below.
 
 ## Launch an instance with a public address
 
@@ -59,7 +59,8 @@ SSH. Reuse what the project has, and create only what is missing.
 4. The network interface, in the subnet and the group:
 
    ```sh
-   nic="$(origin network create-network-interface --subnet <subnet> --output json | jq -r .name)"
+   nic="$(origin network create-network-interface --subnet <subnet> --output json \
+     | jq -r '"//network.origincloudapis.eu/" + .name')"
    origin network create-security-group-association --network-interface "$nic" --security-group <security-group>
    ```
 
@@ -82,15 +83,16 @@ SSH. Reuse what the project has, and create only what is missing.
    1 once it is `FAILED`, with the reason in `stateReason`:
 
    ```sh
-   origin compute create-instance --instance-type instanceTypes/gp1.core.2 \
-     --image-family imageFamilies/debian-12 \
+   origin compute create-instance --instance-type //compute.origincloudapis.eu/instanceTypes/gp1.core.2 \
+     --image-family //compute.origincloudapis.eu/imageFamilies/debian-12 \
      --key-pair <key-pair> --network-interface "$nic" --tag origin:name=<name> --output json
    ```
 
 8. The public address: a floating IP, associated with the interface.
 
    ```sh
-   fip="$(origin network create-floating-ip --output json | jq -r .name)"
+   fip="$(origin network create-floating-ip --output json \
+     | jq -r '"//network.origincloudapis.eu/" + .name')"
    origin network create-floating-ip-association --floating-ip "$fip" --network-interface "$nic"
    origin network get-floating-ip --floating-ip "$fip" --output json | jq -r .address
    ```

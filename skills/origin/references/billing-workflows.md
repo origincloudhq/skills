@@ -4,10 +4,11 @@ Written by hand; the commands and flags are in [billing.md](billing.md).
 Read every output with `--output json`. Reading cost and usage needs
 `admin.usage.list` on the organization; a `PERMISSION_DENIED` is reported,
 not worked around. `<…-id>` is an id alone, the last segment of a
-`name`; any other `<…>` is a resource's full name, or its `name` as a
-command printed it. `--project` and `--organization` of the cost and usage
-queries are references, which take `projects/<project-id>` or
-`organizations/<organization-id>`, never an id alone.
+`name`; any other `<…>` is a resource's full name, its service's host in
+front of the `name` a command printed. `--project` and `--organization` of
+the cost and usage queries are references, which take the full name,
+`//resourcemanager.origincloudapis.eu/projects/<project-id>` or
+`//resourcemanager.origincloudapis.eu/organizations/<organization-id>`, never an id alone.
 
 ## Read a project's cost
 
@@ -20,12 +21,12 @@ in floating point. The period is `--start-time` (included) to
 ```sh
 start="$(date -u +%Y-%m-01T00:00:00Z)"
 now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-origin billing query-project-cost --project projects/<project-id> --start-time "$start" --end-time "$now" --output json \
+origin billing query-project-cost --project //resourcemanager.origincloudapis.eu/projects/<project-id> --start-time "$start" --end-time "$now" --output json \
   | jq -r '"total \(.total)", (.services[] | "\(.service) \(.total)"),
            ([.services[].products[]] | max_by(.total | tonumber) | "largest \(.productKey) \(.total)")'
 ```
 
-`origin billing query-organization-cost --organization organizations/<organization-id>`
+`origin billing query-organization-cost --organization //resourcemanager.origincloudapis.eu/organizations/<organization-id>`
 answers with every project's together and each project's on its own, and
 `origin billing query-billing-account-cost --billing-account <billing-account>`
 with what one billing account is charged.
@@ -36,7 +37,7 @@ The usage records a cost is priced from, each a resource's metered
 interval:
 
 ```sh
-origin billing query-project-usage --project projects/<project-id> --start-time "$start" --end-time "$now" --output json \
+origin billing query-project-usage --project //resourcemanager.origincloudapis.eu/projects/<project-id> --start-time "$start" --end-time "$now" --output json \
   | jq -r '.usageRecords[] | [.productKey, .resourceKind, .resourceId, .metric, .quantity] | @tsv'
 ```
 

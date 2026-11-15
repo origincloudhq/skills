@@ -3,9 +3,9 @@
 Written by hand; the commands and flags are in [network.md](network.md).
 Read every output with `--output json`. Examples leave out `--project`,
 `--zone` and `--region`: they use the profile's, so pass them when the user
-works elsewhere. `<…>` is a resource's full name, or its `name` as a
-command printed it; a resource another command made is named by the `name`
-it printed.
+works elsewhere. `<…>` is a resource's full name, its service's host in
+front of the `name` a command printed; a resource another command made is
+named that way, as below.
 
 ## Allow a port or ICMP in a security group
 

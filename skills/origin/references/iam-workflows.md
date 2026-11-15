@@ -34,7 +34,7 @@ email address or a display name.
    account verified the address, `CONFLICT` that more than one did.
 
    ```sh
-   origin iam lookup-user --email <address> --organization organizations/<organization> --output json \
+   origin iam lookup-user --email <address> --organization //resourcemanager.origincloudapis.eu/organizations/<organization> --output json \
      | jq -r '"//iam.origincloudapis.eu/" + .name'
    ```
 
@@ -57,7 +57,7 @@ email address or a display name.
 
    ```sh
    origin iam create-role-binding --organization <organization> \
-     --member <member> --role <role> --project projects/<project> --output json
+     --member <member> --role <role> --project //resourcemanager.origincloudapis.eu/projects/<project> --output json
    ```
 
    `<member>` is the full name from step 2. `CONFLICT` means the member

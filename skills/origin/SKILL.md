@@ -32,7 +32,7 @@ command and flag here and in the references is one that release has;
    override them, and `--project`, `--zone` and `--region` override both;
    the global `--config <FILE>`, given before the command group, reads
    another profile file when the user names one. With no project set and none named by the user, ask; list the choices
-   with `origin resourcemanager list-projects --organization organizations/<organization> --output json`.
+   with `origin resourcemanager list-projects --organization //resourcemanager.origincloudapis.eu/organizations/<organization> --output json`.
 3. `origin iam get-user --user me --output json` shows who is logged in.
    When a command answers `not logged in`, the user logs in, not you:
    `origin id login` opens their browser, and `origin id login --device`
@@ -150,22 +150,25 @@ name puts its service's host in front,
 Every flag that names a resource takes its full name, on the host of the
 resource's own service, which may be another than the command's:
 `origin compute create-volume-attachment --volume` takes
-`//pvs.origincloudapis.eu/…`. A `name` as a command printed it is taken
-too. Give the full name for anything of another service or project. In
-the commands here and in the references, `<volume>` and the like stand for
-the resource's full name or `name`.
+`//pvs.origincloudapis.eu/…`. Build a full name from a `name` a command
+printed by putting its service's host in front:
+`jq -r '"//pvs.origincloudapis.eu/" + .name'`. In the commands here and in
+the references, `<volume>` and the like stand for the resource's full
+name.
 
 - **A reference** to another resource (`--volume` of an attachment,
   `--key-pair`, `--image`, `--storage-class`, `--peer-security-group`) is
-  sent as given and never completed: an id is refused, catalog ids too.
-  Write `--storage-class //pvs.origincloudapis.eu/storageClasses/gp1` or
-  `--storage-class storageClasses/gp1`, `--instance-type instanceTypes/gp1.core.2`,
-  `--image-family imageFamilies/debian-12`. A reference doesn't set the
+  never completed: give its full name, which the API requires of a
+  reference. An id is refused, catalog ids too:
+  `--storage-class //pvs.origincloudapis.eu/storageClasses/gp1`,
+  `--instance-type //compute.origincloudapis.eu/instanceTypes/gp1.core.2`,
+  `--image-family //compute.origincloudapis.eu/imageFamilies/debian-12`.
+  A reference doesn't set the
   command's own project or zone: `create-instance` runs in `--zone` or the
   profile's zone, whatever zone its image names.
 - **The resource a command acts on, and its parents** (`--volume` of
   `get-volume`, `--security-group` of a rule, `--instance` of a volume
-  attachment) take a full name or `name`, which fills in the project and
+  attachment) take a full name, or a `name`, which fills in the project and
   zone or region, or an id, which `--project` and `--zone` or `--region`
   and their defaults complete. Where `--project`, `--zone`, `--region` or
   `--organization` build the command's own name they take ids alone; where
@@ -176,7 +179,7 @@ the resource's full name or `name`.
 A role binding's member is an IAM full name: a service account's is
 `//iam.origincloudapis.eu/` and its `name`; a user's is
 `//iam.origincloudapis.eu/` and the `name`
-`origin iam lookup-user --email <address> --organization organizations/<organization>`
+`origin iam lookup-user --email <address> --organization //resourcemanager.origincloudapis.eu/organizations/<organization>`
 answers, which needs `iam.role.assign` in that organization. A role is
 `roles/{role}`, such as `roles/compute.admin`. Ignore `urn` fields.
 
