@@ -11,10 +11,10 @@ description: >-
   role bindings, projects or billing data through an SDK.
 license: Apache-2.0
 metadata:
-  api-revision: "227636fb9bf7bc1081c983acff81ad5b0ac70d44"
-  sdk-go-version: "0.27.0"
-  sdk-rust-version: "0.25.0"
-  sdk-typescript-version: "0.26.0"
+  api-revision: "bff84eefda65720ba08cac1cd0379a8ecc3f47a0"
+  sdk-go-version: "0.34.0"
+  sdk-rust-version: "0.33.0"
+  sdk-typescript-version: "0.33.0"
 ---
 # Origin Cloud with the SDKs
 
@@ -207,10 +207,11 @@ file.
 <!-- BEGIN GENERATED references -->
 | Service | Reference | Resources |
 |---|---|---|
-| billing | [references/billing.md](references/billing.md) | billingAccounts, projectBillingInfos, billingCountries, spendLimits |
+| billing | [references/billing.md](references/billing.md) | billingAccounts, projectBillingInfos, billingCountries, legalAcceptances, legalDocuments, legalDocumentVersions, spendLimits |
 | compute | [references/compute.md](references/compute.md) | instanceTypes, imageFamilies, images, instances, keyPairs, publicImages, volumeAttachments |
 | dns | [references/dns.md](references/dns.md) | hostedZones, recordSets, vpcAttachments |
 | iam | [references/iam.md](references/iam.md) | auditLogEntries, federatedCredentials, permissions, roles, roleBindings, serviceAccounts, users |
+| kms | [references/kms.md](references/kms.md) | grants, keys, publicKeys |
 | location | [references/location.md](references/location.md) | regions, zones |
 | network | [references/network.md](references/network.md) | acls, aclAssociations, aclRules, dnsPolicies, dnsPolicyAssociations, floatingIps, floatingIpAssociations, internetGateways, natGateways, networkInterfaces, routes, routeTables, routeTableAssociations, securityGroups, securityGroupAssociations, securityGroupRules, subnets, vpcs |
 | observability | [references/observability.md](references/observability.md) | — |

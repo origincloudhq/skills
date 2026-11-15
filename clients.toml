@@ -7,14 +7,14 @@
 # [[no_tool]] list says which methods an agent isn't handed. API_REVISION
 # is the API revision this commit was generated from.
 [mcp]
-revision = "a3d419df4bdc55cc1c3a187bf5e02e851c783fde"
+revision = "da3aabeb3116ebc1a67cfdac8e7d2a71419f99cf"
 
 # The `origin` CLI release the `origin` skill describes. `commands` is where
 # its command tree comes from: "release" for the commands.json the release
 # carries, or a file of this repository.
 [cli]
-version = "1.20.1"
-commands = "cli-commands.json"
+version = "1.21.0"
+commands = "release"
 
 # The provider release the origincloud-terraform skill describes, by its
 # registry address; its schema is what `tofu providers schema -json` prints.
@@ -25,6 +25,6 @@ version = "0.18.0"
 # The SDK releases the origincloud-sdk skill describes, by their tags
 # (v{version}) in origincloudhq/sdk-rust, sdk-go and sdk-typescript.
 [sdk]
-rust = "0.25.0"
-go = "0.27.0"
-typescript = "0.26.0"
+rust = "0.33.0"
+go = "0.34.0"
+typescript = "0.33.0"
