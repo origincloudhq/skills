@@ -16,7 +16,7 @@ Assumes a `WORKLOAD` service account with an OIDC token.
 origin sts assume-service-account --oidc-token-file <PATH>
 ```
 
-Also: `--organization <ORGANIZATION>`, `--service-account <SERVICE_ACCOUNT>`, `--lifetime <DURATION>`
+Also: `--service-account <NAME>`, `--lifetime <DURATION>`
 
 - no MCP tool: Assuming a service account answers with its access token; a tool would put working credentials into the model's context, and an agent already has its own. CI jobs assume one through the SDKs and the CLI.
 

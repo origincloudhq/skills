@@ -13,7 +13,7 @@ Commands: `origin observability <command>`. Add `--output json` to every command
 Returns a resource's time series for the metrics asked, one per metric, in the order asked.
 
 ```sh
-origin observability query-time-series --parent <PROJECT> --resource <RESOURCE> --metric <METRIC> ... --start-time <TIME> --end-time <TIME> --period <DURATION> --statistic <STATISTIC>
+origin observability query-time-series --parent <NAME> --resource <RESOURCE> --metric <METRIC> ... --start-time <TIME> --end-time <TIME> --period <DURATION> --statistic <STATISTIC>
 ```
 
 

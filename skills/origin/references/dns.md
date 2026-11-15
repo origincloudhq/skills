@@ -114,7 +114,7 @@ Creates a record set.
 origin dns create-record-set --hosted-zone <HOSTED_ZONE> --dns-name <DNS_NAME> --type <TYPE>
 ```
 
-Also: `--project <PROJECT>`, `--zone <ZONE>`, `--ttl <DURATION>`, `--basic-json <JSON>`, `--alias <KEY=VALUE,...>`, `--alias-json <JSON>`, `--request-id <REQUEST_ID>`
+Also: `--project <PROJECT>`, `--ttl <DURATION>`, `--basic-json <JSON>`, `--alias <KEY=VALUE,...>`, `--alias-json <JSON>`, `--request-id <REQUEST_ID>`
 
 - `--request-id` makes a retry safe
 
@@ -126,7 +126,7 @@ Replaces a record set's TTL or what it answers with: `ttl`, `basic` or `alias`, 
 origin dns update-record-set --record-set <RECORD_SET>
 ```
 
-Also: `--project <PROJECT>`, `--hosted-zone <HOSTED_ZONE>`, `--zone <ZONE>`, `--ttl <DURATION>`, `--basic-json <JSON>`, `--alias <KEY=VALUE,...>`, `--alias-json <JSON>`, `--request-id <REQUEST_ID>`
+Also: `--project <PROJECT>`, `--hosted-zone <HOSTED_ZONE>`, `--ttl <DURATION>`, `--basic-json <JSON>`, `--alias <KEY=VALUE,...>`, `--alias-json <JSON>`, `--request-id <REQUEST_ID>`
 
 - `--request-id` makes a retry safe
 
@@ -149,10 +149,10 @@ Also: `--project <PROJECT>`, `--hosted-zone <HOSTED_ZONE>`, `--request-id <REQUE
 Deletes, replaces and creates record sets of one zone together, all or none.
 
 ```sh
-origin dns batch-change-record-sets
+origin dns batch-change-record-sets --hosted-zone <HOSTED_ZONE>
 ```
 
-Also: `--project <PROJECT>`, `--hosted-zone <HOSTED_ZONE>`, `--deletion <RECORD_SET> ...`, `--updates-json <JSON>`, `--creations-json <JSON>`, `--request-id <REQUEST_ID>`
+Also: `--project <PROJECT>`, `--deletion <NAME> ...`, `--updates-json <JSON>`, `--creations-json <JSON>`, `--request-id <REQUEST_ID>`
 
 - `--request-id` makes a retry safe
 
@@ -174,17 +174,17 @@ Lists a private zone's VPC attachments, oldest first.
 origin dns list-vpc-attachments --hosted-zone <HOSTED_ZONE>
 ```
 
-Also: `--project <PROJECT>`, `--region <REGION>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--vpc <VPC>`
+Also: `--project <PROJECT>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--vpc <NAME>`
 
 ### `origin dns create-vpc-attachment`
 
 Attaches a private zone to a VPC of the zone's project.
 
 ```sh
-origin dns create-vpc-attachment --hosted-zone <HOSTED_ZONE> --vpc <VPC>
+origin dns create-vpc-attachment --hosted-zone <HOSTED_ZONE> --vpc <NAME>
 ```
 
-Also: `--project <PROJECT>`, `--region <REGION>`, `--request-id <REQUEST_ID>`
+Also: `--project <PROJECT>`, `--request-id <REQUEST_ID>`
 
 - `--request-id` makes a retry safe
 

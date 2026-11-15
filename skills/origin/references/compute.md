@@ -139,10 +139,10 @@ Also: `--project <PROJECT>`, `--zone <ZONE>`, `--page-size <PAGE_SIZE>`, `--page
 Launches an instance.
 
 ```sh
-origin compute create-instance --instance-type <INSTANCE_TYPE> --key-pair <KEY_PAIR> --network-interface <NETWORK_INTERFACE> ...
+origin compute create-instance --instance-type <NAME> --key-pair <NAME> --network-interface <NAME> ...
 ```
 
-Also: `--project <PROJECT>`, `--zone <ZONE>`, `--organization <ORGANIZATION>`, `--image <IMAGE>`, `--image-family <IMAGE_FAMILY>`, `--login-user <LOGIN_USER>`, `--boot-volume <KEY=VALUE,...>`, `--boot-volume-json <JSON>`, `--tag <KEY=VALUE> ...`, `--service-account <SERVICE_ACCOUNT>`, `--request-id <REQUEST_ID>`, `--no-wait`
+Also: `--project <PROJECT>`, `--zone <ZONE>`, `--image <NAME>`, `--image-family <NAME>`, `--login-user <LOGIN_USER>`, `--boot-volume <KEY=VALUE,...>`, `--boot-volume-json <JSON>`, `--tag <KEY=VALUE> ...`, `--service-account <NAME>`, `--request-id <REQUEST_ID>`, `--no-wait`
 
 - starts an operation and waits for it, unless `--no-wait`; its result is a `Instance`
 - `--request-id` makes a retry safe
@@ -155,7 +155,7 @@ Changes an instance's type, tags or service account.
 origin compute update-instance --instance <INSTANCE>
 ```
 
-Also: `--project <PROJECT>`, `--zone <ZONE>`, `--organization <ORGANIZATION>`, `--instance-type <INSTANCE_TYPE>`, `--tag <KEY=VALUE> ...`, `--no-tags`, `--service-account <SERVICE_ACCOUNT>`, `--request-id <REQUEST_ID>`, `--no-wait`
+Also: `--project <PROJECT>`, `--zone <ZONE>`, `--instance-type <NAME>`, `--tag <KEY=VALUE> ...`, `--no-tags`, `--service-account <NAME>`, `--request-id <REQUEST_ID>`, `--no-wait`
 
 - starts an operation and waits for it, unless `--no-wait`; its result is a `Instance`
 - `--request-id` makes a retry safe
@@ -294,14 +294,14 @@ Lists an instance's volume attachments, the boot volume's first, then by device 
 origin compute list-volume-attachments --instance <INSTANCE>
 ```
 
-Also: `--project <PROJECT>`, `--zone <ZONE>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--volume <VOLUME>`
+Also: `--project <PROJECT>`, `--zone <ZONE>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--volume <NAME>`
 
 ### `origin compute create-volume-attachment`
 
 Attaches an `AVAILABLE` volume to a `RUNNING` or `STOPPED` instance in the same project and zone.
 
 ```sh
-origin compute create-volume-attachment --instance <INSTANCE> --volume <VOLUME>
+origin compute create-volume-attachment --instance <INSTANCE> --volume <NAME>
 ```
 
 Also: `--project <PROJECT>`, `--zone <ZONE>`, `--device <DEVICE>`, `--request-id <REQUEST_ID>`, `--no-wait`

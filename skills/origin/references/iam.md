@@ -40,7 +40,7 @@ Lists an organization's audit log entries, most recent first, optionally only a 
 origin iam list-audit-log-entries --organization <ORGANIZATION>
 ```
 
-Also: `--project <PROJECT>`, `--actor <ACTOR>`, `--action <ACTION>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`
+Also: `--project <NAME>`, `--actor <ACTOR>`, `--action <ACTION>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`
 
 ### `origin iam get-federated-credential`
 
@@ -57,20 +57,20 @@ Also: `--organization <ORGANIZATION>`, `--service-account <SERVICE_ACCOUNT>`
 Lists a service account's federated credentials, oldest first.
 
 ```sh
-origin iam list-federated-credentials --organization <ORGANIZATION> --service-account <SERVICE_ACCOUNT>
+origin iam list-federated-credentials --service-account <SERVICE_ACCOUNT>
 ```
 
-Also: `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--show-deleted <true|false>`
+Also: `--organization <ORGANIZATION>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--show-deleted <true|false>`
 
 ### `origin iam create-federated-credential`
 
 Creates a federated credential on an active `WORKLOAD` service account.
 
 ```sh
-origin iam create-federated-credential --organization <ORGANIZATION> --service-account <SERVICE_ACCOUNT> --display-name <DISPLAY_NAME> --issuer <ISSUER> --condition <KEY=VALUE> ...
+origin iam create-federated-credential --service-account <SERVICE_ACCOUNT> --display-name <DISPLAY_NAME> --issuer <ISSUER> --condition <KEY=VALUE> ...
 ```
 
-Also: `--audience <AUDIENCE>`, `--request-id <REQUEST_ID>`
+Also: `--organization <ORGANIZATION>`, `--audience <AUDIENCE>`, `--request-id <REQUEST_ID>`
 
 - `--request-id` makes a retry safe
 
@@ -150,17 +150,17 @@ Lists an organization's role bindings, oldest first, optionally only a member's 
 origin iam list-role-bindings --organization <ORGANIZATION>
 ```
 
-Also: `--member <MEMBER>`, `--project <PROJECT>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`
+Also: `--member <MEMBER>`, `--project <NAME>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`
 
 ### `origin iam create-role-binding`
 
 Grants a role to a member.
 
 ```sh
-origin iam create-role-binding --organization <ORGANIZATION> --member <MEMBER> --role <ROLE>
+origin iam create-role-binding --organization <ORGANIZATION> --member <MEMBER> --role <NAME>
 ```
 
-Also: `--project <PROJECT>`, `--request-id <REQUEST_ID>`
+Also: `--project <NAME>`, `--request-id <REQUEST_ID>`
 
 - `--request-id` makes a retry safe
 

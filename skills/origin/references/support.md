@@ -37,7 +37,7 @@ Opens a case, `OPEN`.
 origin support create-case --organization <ORGANIZATION> --subject <SUBJECT> --description <DESCRIPTION> --contact-email <CONTACT_EMAIL>
 ```
 
-Also: `--project <PROJECT>`, `--request-id <REQUEST_ID>`
+Also: `--project <NAME>`, `--request-id <REQUEST_ID>`
 
 - `--request-id` makes a retry safe
 
@@ -76,20 +76,20 @@ Also: `--organization <ORGANIZATION>`, `--case <CASE>`
 Lists a case's messages, oldest first.
 
 ```sh
-origin support list-case-messages --organization <ORGANIZATION> --case <CASE>
+origin support list-case-messages --case <CASE>
 ```
 
-Also: `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`
+Also: `--organization <ORGANIZATION>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`
 
 ### `origin support create-case-message`
 
 Adds a message to a case's conversation.
 
 ```sh
-origin support create-case-message --organization <ORGANIZATION> --case <CASE> --body <BODY>
+origin support create-case-message --case <CASE> --body <BODY>
 ```
 
-Also: `--request-id <REQUEST_ID>`
+Also: `--organization <ORGANIZATION>`, `--request-id <REQUEST_ID>`
 
 - `--request-id` makes a retry safe
 

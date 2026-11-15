@@ -93,7 +93,7 @@ origin resourcemanager get-project --project <PROJECT>
 Lists an organization's projects, oldest first.
 
 ```sh
-origin resourcemanager list-projects --organization <ORGANIZATION>
+origin resourcemanager list-projects --organization <NAME>
 ```
 
 Also: `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`
@@ -103,7 +103,7 @@ Also: `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`
 Creates a project in an `ACTIVE` organization, under the id the caller chooses.
 
 ```sh
-origin resourcemanager create-project --organization <ORGANIZATION> --display-name <DISPLAY_NAME> --project-id <PROJECT_ID>
+origin resourcemanager create-project --organization <NAME> --display-name <DISPLAY_NAME> --project-id <PROJECT_ID>
 ```
 
 Also: `--request-id <REQUEST_ID>`

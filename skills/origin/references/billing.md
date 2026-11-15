@@ -45,7 +45,7 @@ Creates a billing account with its profile: `display_name`, `billing_address`, `
 origin billing create-billing-account --organization <ORGANIZATION> --display-name <DISPLAY_NAME>
 ```
 
-Also: `--billing-address <KEY=VALUE,...>`, `--billing-address-json <JSON>`, `--invoice-email <INVOICE_EMAIL>`, `--vat-id <VAT_ID>`, `--contact-person <CONTACT_PERSON>`, `--request-id <REQUEST_ID>`
+Also: `--billing-address <KEY=VALUE,...>`, `--billing-address-json <JSON>`, `--invoice-email <INVOICE_EMAIL>`, `--vat-id <VAT_ID>`, `--contact-person <CONTACT_PERSON>`, `--request-id <REQUEST_ID>`, `--accepted-legal-document <KEY=VALUE,...> ...`, `--accepted-legal-documents-json <JSON>`, `--acts-as-business <true|false>`
 
 - `--request-id` makes a retry safe
 
@@ -109,7 +109,7 @@ Links a project to another billing account of its organization, which pays for i
 origin billing update-project-billing-info --project <PROJECT>
 ```
 
-Also: `--organization <ORGANIZATION>`, `--billing-account <BILLING_ACCOUNT>`
+Also: `--billing-account <NAME>`
 
 ### `origin billing list-project-billing-info`
 
@@ -145,7 +145,7 @@ Also: `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`
 Returns a project's cost in a period, by service and product, in hourly or daily buckets.
 
 ```sh
-origin billing query-project-cost --project <PROJECT> --start-time <TIME> --end-time <TIME>
+origin billing query-project-cost --project <NAME> --start-time <TIME> --end-time <TIME>
 ```
 
 Also: `--granularity <GRANULARITY>`
@@ -155,7 +155,7 @@ Also: `--granularity <GRANULARITY>`
 Returns an organization's cost in a period: every project's together, by service and product, and each project's on its own.
 
 ```sh
-origin billing query-organization-cost --organization <ORGANIZATION> --start-time <TIME> --end-time <TIME>
+origin billing query-organization-cost --organization <NAME> --start-time <TIME> --end-time <TIME>
 ```
 
 Also: `--granularity <GRANULARITY>`
@@ -165,17 +165,17 @@ Also: `--granularity <GRANULARITY>`
 Returns what was charged to a billing account in a period, by service and product.
 
 ```sh
-origin billing query-billing-account-cost --billing-account <BILLING_ACCOUNT> --start-time <TIME> --end-time <TIME>
+origin billing query-billing-account-cost --billing-account <NAME> --start-time <TIME> --end-time <TIME>
 ```
 
-Also: `--organization <ORGANIZATION>`, `--granularity <GRANULARITY>`
+Also: `--granularity <GRANULARITY>`
 
 ### `origin billing query-project-usage`
 
 Lists a project's metered usage records that overlap a period, the input its cost is priced from, oldest first.
 
 ```sh
-origin billing query-project-usage --project <PROJECT> --start-time <TIME> --end-time <TIME>
+origin billing query-project-usage --project <NAME> --start-time <TIME> --end-time <TIME>
 ```
 
 Also: `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`

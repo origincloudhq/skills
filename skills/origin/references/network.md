@@ -66,14 +66,14 @@ Lists the ACLs in a region, oldest first.
 origin network list-acls
 ```
 
-Also: `--project <PROJECT>`, `--region <REGION>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--vpc <VPC>`
+Also: `--project <PROJECT>`, `--region <REGION>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--vpc <NAME>`
 
 ### `origin network create-acl`
 
 Creates an ACL in a VPC, with no rules: it drops everything until rules are added.
 
 ```sh
-origin network create-acl --vpc <VPC>
+origin network create-acl --vpc <NAME>
 ```
 
 Also: `--project <PROJECT>`, `--region <REGION>`, `--tag <KEY=VALUE> ...`, `--request-id <REQUEST_ID>`, `--no-wait`
@@ -134,10 +134,10 @@ Also: `--project <PROJECT>`, `--zone <ZONE>`, `--page-size <PAGE_SIZE>`, `--page
 Associates an ACL with a subnet.
 
 ```sh
-origin network create-acl-association --subnet <SUBNET> --acl <ACL>
+origin network create-acl-association --subnet <SUBNET> --acl <NAME>
 ```
 
-Also: `--project <PROJECT>`, `--zone <ZONE>`, `--region <REGION>`, `--request-id <REQUEST_ID>`, `--no-wait`
+Also: `--project <PROJECT>`, `--zone <ZONE>`, `--request-id <REQUEST_ID>`, `--no-wait`
 
 - starts an operation and waits for it, unless `--no-wait`; its result is a `AclAssociation`
 - `--request-id` makes a retry safe
@@ -304,7 +304,7 @@ Also: `--project <PROJECT>`, `--region <REGION>`, `--page-size <PAGE_SIZE>`, `--
 Associates a DNS policy with a VPC.
 
 ```sh
-origin network create-dns-policy-association --vpc <VPC> --dns-policy <DNS_POLICY>
+origin network create-dns-policy-association --vpc <VPC> --dns-policy <NAME>
 ```
 
 Also: `--project <PROJECT>`, `--region <REGION>`, `--request-id <REQUEST_ID>`, `--no-wait`
@@ -413,7 +413,7 @@ Also: `--project <PROJECT>`, `--zone <ZONE>`, `--page-size <PAGE_SIZE>`, `--page
 Associates a floating IP with a network interface.
 
 ```sh
-origin network create-floating-ip-association --floating-ip <FLOATING_IP> --network-interface <NETWORK_INTERFACE>
+origin network create-floating-ip-association --floating-ip <FLOATING_IP> --network-interface <NAME>
 ```
 
 Also: `--project <PROJECT>`, `--zone <ZONE>`, `--request-id <REQUEST_ID>`, `--no-wait`
@@ -454,14 +454,14 @@ Lists the internet gateways in a region, oldest first.
 origin network list-internet-gateways
 ```
 
-Also: `--project <PROJECT>`, `--region <REGION>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--vpc <VPC>`
+Also: `--project <PROJECT>`, `--region <REGION>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--vpc <NAME>`
 
 ### `origin network create-internet-gateway`
 
 Creates a VPC's internet gateway.
 
 ```sh
-origin network create-internet-gateway --vpc <VPC>
+origin network create-internet-gateway --vpc <NAME>
 ```
 
 Also: `--project <PROJECT>`, `--region <REGION>`, `--tag <KEY=VALUE> ...`, `--request-id <REQUEST_ID>`, `--no-wait`
@@ -522,7 +522,7 @@ Also: `--project <PROJECT>`, `--zone <ZONE>`, `--page-size <PAGE_SIZE>`, `--page
 Creates a NAT gateway in a public subnet, one whose route table sends the IPv4 default route to an internet gateway, with a floating IP that has no association and backs no other NAT gateway.
 
 ```sh
-origin network create-nat-gateway --subnet <SUBNET> --floating-ip <FLOATING_IP>
+origin network create-nat-gateway --subnet <NAME> --floating-ip <NAME>
 ```
 
 Also: `--project <PROJECT>`, `--zone <ZONE>`, `--tag <KEY=VALUE> ...`, `--request-id <REQUEST_ID>`, `--no-wait`
@@ -576,14 +576,14 @@ Lists the network interfaces in a zone, oldest first.
 origin network list-network-interfaces
 ```
 
-Also: `--project <PROJECT>`, `--zone <ZONE>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--subnet <SUBNET>`
+Also: `--project <PROJECT>`, `--zone <ZONE>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--subnet <NAME>`
 
 ### `origin network create-network-interface`
 
 Creates an unattached network interface with the next free addresses of its subnet and no security group: it admits and sends nothing until a security group association opens it.
 
 ```sh
-origin network create-network-interface --subnet <SUBNET>
+origin network create-network-interface --subnet <NAME>
 ```
 
 Also: `--project <PROJECT>`, `--zone <ZONE>`, `--source-address-check <true|false>`, `--tag <KEY=VALUE> ...`, `--request-id <REQUEST_ID>`, `--no-wait`
@@ -647,7 +647,7 @@ Adds a route to a route table.
 origin network create-route --route-table <ROUTE_TABLE> --destination <DESTINATION>
 ```
 
-Also: `--project <PROJECT>`, `--region <REGION>`, `--zone <ZONE>`, `--internet-gateway <INTERNET_GATEWAY>`, `--nat-gateway <NAT_GATEWAY>`, `--request-id <REQUEST_ID>`, `--no-wait`
+Also: `--project <PROJECT>`, `--region <REGION>`, `--internet-gateway <NAME>`, `--nat-gateway <NAME>`, `--request-id <REQUEST_ID>`, `--no-wait`
 
 - starts an operation and waits for it, unless `--no-wait`; its result is a `Route`
 - `--request-id` makes a retry safe
@@ -685,14 +685,14 @@ Lists the route tables in a region, oldest first.
 origin network list-route-tables
 ```
 
-Also: `--project <PROJECT>`, `--region <REGION>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--vpc <VPC>`
+Also: `--project <PROJECT>`, `--region <REGION>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--vpc <NAME>`
 
 ### `origin network create-route-table`
 
 Creates a route table in a VPC, with the VPC's local routes and no other.
 
 ```sh
-origin network create-route-table --vpc <VPC>
+origin network create-route-table --vpc <NAME>
 ```
 
 Also: `--project <PROJECT>`, `--region <REGION>`, `--tag <KEY=VALUE> ...`, `--request-id <REQUEST_ID>`, `--no-wait`
@@ -753,10 +753,10 @@ Also: `--project <PROJECT>`, `--zone <ZONE>`, `--page-size <PAGE_SIZE>`, `--page
 Associates a route table with a subnet.
 
 ```sh
-origin network create-route-table-association --subnet <SUBNET> --route-table <ROUTE_TABLE>
+origin network create-route-table-association --subnet <SUBNET> --route-table <NAME>
 ```
 
-Also: `--project <PROJECT>`, `--zone <ZONE>`, `--region <REGION>`, `--request-id <REQUEST_ID>`, `--no-wait`
+Also: `--project <PROJECT>`, `--zone <ZONE>`, `--request-id <REQUEST_ID>`, `--no-wait`
 
 - starts an operation and waits for it, unless `--no-wait`; its result is a `RouteTableAssociation`
 - `--request-id` makes a retry safe
@@ -794,14 +794,14 @@ Lists the security groups in a region, oldest first.
 origin network list-security-groups
 ```
 
-Also: `--project <PROJECT>`, `--region <REGION>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--vpc <VPC>`
+Also: `--project <PROJECT>`, `--region <REGION>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--vpc <NAME>`
 
 ### `origin network create-security-group`
 
 Creates a security group in a VPC, with no rules: it allows nothing until rules are added.
 
 ```sh
-origin network create-security-group --vpc <VPC>
+origin network create-security-group --vpc <NAME>
 ```
 
 Also: `--project <PROJECT>`, `--region <REGION>`, `--tag <KEY=VALUE> ...`, `--request-id <REQUEST_ID>`, `--no-wait`
@@ -862,10 +862,10 @@ Also: `--project <PROJECT>`, `--zone <ZONE>`, `--page-size <PAGE_SIZE>`, `--page
 Associates a security group with a network interface, also while it is attached.
 
 ```sh
-origin network create-security-group-association --network-interface <NETWORK_INTERFACE> --security-group <SECURITY_GROUP>
+origin network create-security-group-association --network-interface <NETWORK_INTERFACE> --security-group <NAME>
 ```
 
-Also: `--project <PROJECT>`, `--zone <ZONE>`, `--region <REGION>`, `--request-id <REQUEST_ID>`, `--no-wait`
+Also: `--project <PROJECT>`, `--zone <ZONE>`, `--request-id <REQUEST_ID>`, `--no-wait`
 
 - starts an operation and waits for it, unless `--no-wait`; its result is a `SecurityGroupAssociation`
 - `--request-id` makes a retry safe
@@ -913,7 +913,7 @@ Adds a rule to a security group.
 origin network create-security-group-rule --security-group <SECURITY_GROUP> --direction <DIRECTION> --protocol <PROTOCOL>
 ```
 
-Also: `--project <PROJECT>`, `--region <REGION>`, `--first-port <FIRST_PORT>`, `--last-port <LAST_PORT>`, `--cidr-block <CIDR_BLOCK>`, `--peer-security-group <SECURITY_GROUP>`, `--same-group <true|false>`, `--description <DESCRIPTION>`, `--request-id <REQUEST_ID>`, `--no-wait`
+Also: `--project <PROJECT>`, `--region <REGION>`, `--first-port <FIRST_PORT>`, `--last-port <LAST_PORT>`, `--cidr-block <CIDR_BLOCK>`, `--peer-security-group <NAME>`, `--same-group <true|false>`, `--description <DESCRIPTION>`, `--request-id <REQUEST_ID>`, `--no-wait`
 
 - starts an operation and waits for it, unless `--no-wait`; its result is a `SecurityGroupRule`
 - `--request-id` makes a retry safe
@@ -951,17 +951,17 @@ Lists the subnets in a zone, oldest first.
 origin network list-subnets
 ```
 
-Also: `--project <PROJECT>`, `--zone <ZONE>`, `--region <REGION>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--vpc <VPC>`
+Also: `--project <PROJECT>`, `--zone <ZONE>`, `--page-size <PAGE_SIZE>`, `--page-token <PAGE_TOKEN>`, `--vpc <NAME>`
 
 ### `origin network create-subnet`
 
 Creates a subnet in a VPC, with the next free IPv4 and IPv6 ranges of the VPC's address space, and no route table or ACL association.
 
 ```sh
-origin network create-subnet --vpc <VPC>
+origin network create-subnet --vpc <NAME>
 ```
 
-Also: `--project <PROJECT>`, `--zone <ZONE>`, `--region <REGION>`, `--auto-assign-public-ip <true|false>`, `--tag <KEY=VALUE> ...`, `--request-id <REQUEST_ID>`, `--no-wait`
+Also: `--project <PROJECT>`, `--zone <ZONE>`, `--auto-assign-public-ip <true|false>`, `--tag <KEY=VALUE> ...`, `--request-id <REQUEST_ID>`, `--no-wait`
 
 - starts an operation and waits for it, unless `--no-wait`; its result is a `Subnet`
 - `--request-id` makes a retry safe

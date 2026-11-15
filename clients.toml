@@ -14,7 +14,7 @@ revision = "a3d419df4bdc55cc1c3a187bf5e02e851c783fde"
 # carries, or a file of this repository.
 [cli]
 version = "1.20.1"
-commands = "release"
+commands = "cli-commands.json"
 
 # The provider release the origincloud-terraform skill describes, by its
 # registry address; its schema is what `tofu providers schema -json` prints.
