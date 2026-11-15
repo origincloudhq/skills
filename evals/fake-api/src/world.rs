@@ -450,24 +450,33 @@ impl State {
 
     /// A create naming a resource that isn't there, or isn't ready, is
     /// refused, as the API refuses it; so is a role binding for a member
-    /// no account has.
+    /// no account has. A name is taken in either form, full or relative, as
+    /// the API takes it; a member, as its IAM full name or as a binding
+    /// shows it (`serviceAccount:sa-1`).
     fn check_references(&self, body: &Value) -> Result<(), Answer> {
         let name = Regex::new(
-            r"^(projects|organizations|zones|regions|roles|instanceTypes|imageFamilies|storageClasses)/[^/]+(/|$)",
+            r"^(projects|organizations|zones|regions|roles|instanceTypes|imageFamilies|storageClasses|users|serviceAgents)/[^/]+(/|$)",
         )
         .expect("a valid pattern");
         if let Some(member) = body.get("member").and_then(Value::as_str) {
-            if !self
-                .resources
-                .values()
-                .any(|r| r.get("member").and_then(Value::as_str) == Some(member))
-            {
+            let known = match relative(member) {
+                Some(account) => {
+                    member.starts_with("//iam.origincloudapis.eu/")
+                        && self.resources.contains_key(account)
+                }
+                None => self
+                    .resources
+                    .values()
+                    .any(|r| r.get("member").and_then(Value::as_str) == Some(member)),
+            };
+            if !known {
                 return Err(error(404, "NOT_FOUND", &format!("no account is {member}")));
             }
         }
         let mut strings = Vec::new();
         collect_strings(body, &mut strings);
         for s in strings {
+            let s = relative(s).unwrap_or(s);
             if !name.is_match(s) || s.split('/').count() % 2 == 1 {
                 continue;
             }
@@ -595,6 +604,15 @@ fn public(op: &Value) -> Value {
         o.remove("pendingResponse");
     }
     op
+}
+
+/// The relative name of `name` when it is a full name,
+/// `//{service}.origincloudapis.eu/{relative}`.
+fn relative(name: &str) -> Option<&str> {
+    let (host, relative) = name.strip_prefix("//")?.split_once('/')?;
+    host.strip_suffix(".origincloudapis.eu")
+        .filter(|service| !service.is_empty() && !service.contains('.'))
+        .map(|_| relative)
 }
 
 fn collect_strings<'a>(v: &'a Value, out: &mut Vec<&'a str>) {
@@ -818,6 +836,58 @@ mod tests {
         ));
         assert_eq!(status, 400);
         assert_eq!(e["error"]["details"][0]["reason"], "FAILED_PRECONDITION");
+    }
+
+    /// A reference in a body is taken as a full name too, and is checked
+    /// as its relative name; so is a member, as its IAM full name.
+    #[test]
+    fn a_full_name_is_taken_and_checked() {
+        let mut s = state(json!({ "resources": [
+            { "name": VOLUME, "state": "AVAILABLE" },
+            { "name": "projects/p/zones/z/instances/i-1", "state": "RUNNING" },
+            { "name": "organizations/o/serviceAccounts/sa-1", "member": "serviceAccount:sa-1" },
+            { "name": "roles/viewer" },
+        ]}));
+        let (status, _) = json(s.handle(
+            "compute",
+            "POST",
+            "/v1beta1/projects/p/zones/z/instances/i-1/volumeAttachments",
+            &[],
+            &format!(r#"{{"volume":"//pvs.origincloudapis.eu/{VOLUME}"}}"#),
+        ));
+        assert_eq!(status, 200);
+        let (status, _) = json(s.handle(
+            "compute",
+            "POST",
+            "/v1beta1/projects/p/zones/z/instances/i-1/volumeAttachments",
+            &[],
+            r#"{"volume":"//pvs.origincloudapis.eu/projects/p/zones/z/volumes/gone"}"#,
+        ));
+        assert_eq!(status, 404);
+        for (member, wanted) in [
+            (
+                "//iam.origincloudapis.eu/organizations/o/serviceAccounts/sa-1",
+                200,
+            ),
+            ("serviceAccount:sa-1", 200),
+            (
+                "//iam.origincloudapis.eu/organizations/o/serviceAccounts/gone",
+                404,
+            ),
+            (
+                "//pvs.origincloudapis.eu/organizations/o/serviceAccounts/sa-1",
+                404,
+            ),
+        ] {
+            let (status, _) = json(s.handle(
+                "iam",
+                "POST",
+                "/v1beta1/organizations/o/roleBindings",
+                &[],
+                &format!(r#"{{"member":"{member}","role":"roles/viewer"}}"#),
+            ));
+            assert_eq!(status, wanted, "{member}");
+        }
     }
 
     #[test]

@@ -348,6 +348,78 @@
       ]
     },
     {
+      "id": "attach-a-volume-in-another-project",
+      "api": {
+        "world": "worlds/shop.json",
+        "resources": [
+          {
+            "name": "projects/shop-staging/zones/eu-central1-az1/instances/i-test1",
+            "instanceType": "instanceTypes/gp1.core.2",
+            "state": "RUNNING",
+            "tags": {
+              "origin:name": "test-1"
+            }
+          },
+          {
+            "name": "projects/shop-staging/zones/eu-central1-az1/volumes/vol-fixtures",
+            "sizeGib": 20,
+            "storageClass": "storageClasses/gp1",
+            "state": "AVAILABLE",
+            "tags": {
+              "origin:name": "fixtures"
+            }
+          }
+        ]
+      },
+      "prompt": "In our shop-staging project, attach the fixtures volume //pvs.origincloudapis.eu/projects/shop-staging/zones/eu-central1-az1/volumes/vol-fixtures to the instance //compute.origincloudapis.eu/projects/shop-staging/zones/eu-central1-az1/instances/i-test1.",
+      "checks": [
+        {
+          "kind": "requests_include",
+          "pattern": "^POST /v1beta1/projects/shop-staging/zones/eu-central1-az1/instances/i-test1/volumeAttachments[^ ]* 200 .*\"volume\":\"(//pvs\\.origincloudapis\\.eu/)?projects/shop-staging/zones/eu-central1-az1/volumes/vol-fixtures\"",
+          "why": "The volume is attached to the staging instance, both named by their whole names, though the profile's project is shop-prod."
+        },
+        {
+          "kind": "requests_exclude",
+          "pattern": "projects/shop-prod/zones/eu-central1-az1/(instances/i-test1|volumes/vol-fixtures)",
+          "why": "Nothing is completed into the profile's project."
+        },
+        {
+          "kind": "transcript_excludes",
+          "pattern": "##\\*/",
+          "why": "The agent passes the full names as they are rather than cutting them down to ids."
+        },
+        {
+          "kind": "requests_exclude",
+          "pattern": "^(PATCH|DELETE) ",
+          "why": "Nothing that exists is changed or deleted."
+        }
+      ]
+    },
+    {
+      "id": "rule-on-a-group-given-by-full-name",
+      "api": {
+        "world": "worlds/shop.json"
+      },
+      "prompt": "Open TCP port 5432 from 10.20.0.0/16 on the security group //network.origincloudapis.eu/projects/shop-prod/regions/eu-central1/securityGroups/sg-db.",
+      "checks": [
+        {
+          "kind": "requests_include",
+          "pattern": "^POST /v1beta1/projects/shop-prod/regions/eu-central1/securityGroups/sg-db/rules[^ ]* 200 .*\"firstPort\":5432.*10\\.20\\.0\\.0/16",
+          "why": "The rule is added to the group the full name names."
+        },
+        {
+          "kind": "transcript_excludes",
+          "pattern": "##\\*/",
+          "why": "The agent passes the group's full name to --security-group rather than cutting it down to an id."
+        },
+        {
+          "kind": "requests_exclude",
+          "pattern": "^DELETE ",
+          "why": "Nothing is deleted."
+        }
+      ]
+    },
+    {
       "id": "grant-role-to-service-account",
       "api": {
         "world": "worlds/shop.json"
@@ -356,8 +428,8 @@
       "checks": [
         {
           "kind": "requests_include",
-          "pattern": "^POST /v1beta1/organizations/org-acme/roleBindings[^ ]* 200 .*\"member\":\"serviceAccount:sa-ci\".*\"role\":\"roles/compute.admin\".*\"project\":\"projects/shop-prod\"",
-          "why": "The binding names the service account by its member, the compute role, and the project."
+          "pattern": "^POST /v1beta1/organizations/org-acme/roleBindings[^ ]* 200 .*\"member\":\"//iam\\.origincloudapis\\.eu/organizations/org-acme/serviceAccounts/sa-ci\".*\"role\":\"roles/compute\\.admin\".*\"project\":\"(//resourcemanager\\.origincloudapis\\.eu/)?projects/shop-prod\"",
+          "why": "The binding names the service account by its IAM full name, the compute role, and the project."
         },
         {
           "kind": "requests_exclude",
@@ -366,7 +438,7 @@
         },
         {
           "kind": "requests_exclude",
-          "pattern": "roleBindings[^ ]* 200 .*\"member\":\"serviceAccount:sa-ci\"(,\"role\":\"[^\"]*\")?}",
+          "pattern": "roleBindings[^ ]* 200 .*\"member\":\"[^\"]*sa-ci\"(,\"role\":\"[^\"]*\")?}",
           "why": "No binding covers the whole organization."
         },
         {

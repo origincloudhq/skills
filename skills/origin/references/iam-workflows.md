@@ -2,13 +2,15 @@
 
 Written by hand; the commands and flags are in [iam.md](iam.md). Read
 every output with `--output json`. `--organization` takes the
-organization's id, the last segment of its `name`.
+organization's id, the last segment of its `name`, except where it is a
+reference, as in `lookup-user`, which takes its whole name.
 
-## Give a service account a role
+## Give a service account or a user a role
 
 A role binding grants one role to one member, on the whole organization
 or, with `--project`, on one project. Grant the narrowest role and scope
-that does what the user asked.
+that does what the user asked. The member is an IAM full name, never an
+email address or a display name.
 
 1. The organization:
 
@@ -17,16 +19,27 @@ that does what the user asked.
      | jq -r '.organizations[] | [.name, .displayName] | @tsv'
    ```
 
-2. The service account, by the name the user knows it by, its
-   `displayName`. Its `member` field is what the binding names:
+2. The member. A service account, by the name the user knows it by, its
+   `displayName`: its full name is `//iam.origincloudapis.eu/` and its
+   `name`.
 
    ```sh
    origin iam list-service-accounts --organization <organization> --output json \
-     | jq -r '.serviceAccounts[] | [.displayName, .member, .state, .type] | @tsv'
+     | jq -r '.serviceAccounts[] | ["//iam.origincloudapis.eu/" + .name, .displayName, .state, .type] | @tsv'
    ```
 
-3. The role: the predefined role that covers what the user asked for and
-   least else.
+   A user, by the email address their account verified: their full name
+   is `//iam.origincloudapis.eu/` and the `name` the lookup answers. It
+   needs `iam.role.assign` in the organization; `NOT_FOUND` means no
+   account verified the address, `CONFLICT` that more than one did.
+
+   ```sh
+   origin iam lookup-user --email <address> --organization organizations/<organization> --output json \
+     | jq -r '"//iam.origincloudapis.eu/" + .name'
+   ```
+
+3. The role, `roles/{role}` with a dotted id (`roles/compute.admin`): the
+   predefined role that covers what the user asked for and least else.
 
    ```sh
    origin iam list-roles --output json | jq -r '.roles[] | [.name, .displayName, .description] | @tsv'
@@ -47,8 +60,9 @@ that does what the user asked.
      --member <member> --role <role> --project projects/<project> --output json
    ```
 
-   `CONFLICT` means the member holds the role at that scope already;
-   `NOT_FOUND` that no account is that member.
+   `<member>` is the full name from step 2. `CONFLICT` means the member
+   holds the role at that scope already; `NOT_FOUND` that no account is
+   that member.
 
 Taking a role away is `origin iam delete-role-binding`, a delete: ask
 first, naming the member, the role and the scope.

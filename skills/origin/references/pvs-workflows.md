@@ -3,7 +3,7 @@
 Written by hand; the commands and flags are in [pvs.md](pvs.md). Read every
 output with `--output json`. Examples leave out `--project` and `--zone`:
 they use the profile's, so pass them when the user works elsewhere.
-`<…>` is a `name` or an id.
+`<…>` is a resource's full name, or its `name` as a command printed it.
 
 ## Grow a volume and see what holds it
 
