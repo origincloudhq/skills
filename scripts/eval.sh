@@ -79,7 +79,10 @@
 # - `answer_matches`: the agent's last message matches `pattern`;
 # - `requests_include` / `requests_exclude`: the fake API received / didn't
 #   receive a request whose line, `METHOD /path?query STATUS body`, matches
-#   `pattern`.
+#   `pattern`;
+# - `any_of`: at least one of its `checks`, each of any kind above, passes:
+#   a task that accepts one of several outcomes, such as a rule created or a
+#   question asked. Its `why` says what the group asks for.
 #
 # Every task with an `api` also fails when the agent's transcript, or a
 # file it left, names one of the fake API's local endpoints
@@ -440,6 +443,40 @@ run_check() {
   fi
 }
 
+# Whether one check of a task passes, in the run's directory `dir`: its kind
+# is one of those the header lists; `n` numbers it for `run`'s directory,
+# and `requests` is the fake API's log.
+check_passes() {
+  local dir="$1" n="$2" check="$3" requests="$4" kind pattern glob sub
+  kind="$(jq -r .kind <<< "${check}")"
+  pattern="$(jq -r '.pattern // ""' <<< "${check}")"
+  glob="$(jq -r '.glob // "*"' <<< "${check}")"
+  case "${kind}" in
+    run)
+      run_check "${dir}" "${n}" "$(jq -r .command <<< "${check}")" >> "${dir}/checks.log" 2>&1 < /dev/null ;;
+    files_match)
+      [[ -n "$(matching_files "${dir}" "${glob}" "${pattern}")" ]] ;;
+    files_exclude)
+      [[ -z "$(matching_files "${dir}" "${glob}" "${pattern}")" ]] ;;
+    transcript_includes)
+      grep -qE -- "${pattern}" "${dir}/transcript.jsonl" ;;
+    transcript_excludes)
+      ! grep -qE -- "${pattern}" "${dir}/transcript.jsonl" ;;
+    answer_matches)
+      grep -qP -- "${pattern}" "${dir}/answer.txt" ;;
+    requests_include)
+      grep -qE -- "${pattern}" "${requests}" ;;
+    requests_exclude)
+      ! grep -qE -- "${pattern}" "${requests}" ;;
+    any_of)
+      while read -r sub; do
+        if check_passes "${dir}" "${n}" "${sub}" "${requests}"; then return 0; fi
+      done < <(jq -c '.checks[]' <<< "${check}")
+      return 1 ;;
+    *) echo "unknown check ${kind}" >&2; exit 2 ;;
+  esac
+}
+
 while read -r task; do
   id="$(jq -r .id <<< "${task}")"
   [[ -z "${only}" || "${only}" == "${id}" ]] || continue
@@ -488,30 +525,8 @@ while read -r task; do
     while read -r check; do
       n=$((n + 1))
       kind="$(jq -r .kind <<< "${check}")"
-      pattern="$(jq -r '.pattern // ""' <<< "${check}")"
-      glob="$(jq -r '.glob // "*"' <<< "${check}")"
       why="$(jq -r .why <<< "${check}")"
-      ok=false
-      case "${kind}" in
-        run)
-          if run_check "${dir}" "${n}" "$(jq -r .command <<< "${check}")" >> "${dir}/checks.log" 2>&1 < /dev/null; then ok=true; fi ;;
-        files_match)
-          if [[ -n "$(matching_files "${dir}" "${glob}" "${pattern}")" ]]; then ok=true; fi ;;
-        files_exclude)
-          if [[ -z "$(matching_files "${dir}" "${glob}" "${pattern}")" ]]; then ok=true; fi ;;
-        transcript_includes)
-          if grep -qE -- "${pattern}" "${dir}/transcript.jsonl"; then ok=true; fi ;;
-        transcript_excludes)
-          if ! grep -qE -- "${pattern}" "${dir}/transcript.jsonl"; then ok=true; fi ;;
-        answer_matches)
-          if grep -qP -- "${pattern}" "${dir}/answer.txt"; then ok=true; fi ;;
-        requests_include)
-          if grep -qE -- "${pattern}" "${requests}"; then ok=true; fi ;;
-        requests_exclude)
-          if ! grep -qE -- "${pattern}" "${requests}"; then ok=true; fi ;;
-        *) echo "${id}: unknown check ${kind}" >&2; exit 2 ;;
-      esac
-      [[ "${ok}" == true ]] || failed+=("${kind}: ${why}")
+      if ! check_passes "${dir}" "${n}" "${check}" "${requests}"; then failed+=("${kind}: ${why}"); fi
     done < <(jq -c '.checks[]' <<< "${task}")
 
     # No local endpoint of the fake API the agent called in what it saw or
