@@ -617,6 +617,8 @@ const COLLECTIONS: &[(&str, &str)] = &[
     ("roleBindings", "iam"),
     ("roles", "iam"),
     ("serviceAccounts", "iam"),
+    ("serviceAgents", "iam"),
+    ("services", "iam"),
     ("users", "iam"),
     ("grants", "kms"),
     ("keys", "kms"),
