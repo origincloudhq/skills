@@ -97,7 +97,8 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 # Go, and a module proxy on disk holding the Go SDK and every module it
 # needs: `go get go.origincloud.eu/sdk` finds the pinned release, and only
-# it.
+# it. The module's version list is cut to that release: the one fetched
+# names every later release too, whose files the proxy doesn't hold.
 # A login shell, as Codex runs commands in, resets PATH: the toolchains'
 # commands are in /usr/local/bin too.
 COPY --from=go /usr/local/go /usr/local/go
@@ -110,6 +111,8 @@ RUN cd /tmp/seed-go \
   && go get "go.origincloud.eu/sdk@v${SDK_GO_VERSION}" \
   && go mod tidy && go mod download all && go build ./... \
   && mkdir -p /opt/go && mv /tmp/gomod/cache/download /opt/go/proxy \
+  && printf 'v%s\n' "${SDK_GO_VERSION}" > /opt/go/proxy/go.origincloud.eu/sdk/@v/list \
+  && rm -f /opt/go/proxy/go.origincloud.eu/sdk/@latest \
   && chmod -R a+rX /opt/go && rm -rf /tmp/seed-go /tmp/gopath /tmp/gomod /root/.cache
 ENV GOPROXY=file:///opt/go/proxy GOSUMDB=off GOPATH=/tmp/go GOMODCACHE=/tmp/go/mod GOCACHE=/tmp/go/cache
 # The TypeScript SDK's packages, TypeScript and Node's types, which the
