@@ -37,8 +37,9 @@ RUN cargo build --locked --release -p origincloud-skills-fake-api
 FROM golang:1.27.4-trixie AS go
 
 FROM node:22-trixie-slim AS base
+# uuid-runtime: `uuidgen`, which a user's machine has and the CLI's --request-id examples call.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends bash ca-certificates curl git jq openssl ripgrep socat unzip \
+  && apt-get install -y --no-install-recommends bash ca-certificates curl git jq openssl ripgrep socat unzip uuid-runtime \
   && rm -rf /var/lib/apt/lists/*
 # The platform's hosts, *.origincloudapis.eu, answer in the container as
 # the fake API, through TLS that socat terminates (evals/bin/eval-fake-api):
