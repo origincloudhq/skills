@@ -11,7 +11,7 @@ description: >-
   service accounts, projects, billing accounts and spend limits.
 license: Apache-2.0
 metadata:
-  api-revision: "bff84eefda65720ba08cac1cd0379a8ecc3f47a0"
+  api-revision: "2205ee74b219904dcdd144bb449cdb26199f556d"
   provider-version: "0.18.0"
 ---
 # Origin Cloud with Terraform
