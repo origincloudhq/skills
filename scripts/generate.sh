@@ -63,14 +63,20 @@ if [[ "${mcp_revision}" != "${revision}" ]]; then
   exit 1
 fi
 
-# The CLI's command tree.
+# The CLI's command tree, and the methods its release leaves without a
+# command, with the reason: the [[no_command]] list of its
+# generator/commands.toml at the release's tag. A command tree from a file
+# has no release, and so no such list.
 cli_version="$(pin cli version)"
 commands="$(pin cli commands)"
 if [[ "${commands}" == release ]]; then
   curl -fsSL --retry 3 -o "${in}/commands.json" \
     "${GITHUB}/cli/releases/download/v${cli_version}/commands.json"
+  checkout "${GITHUB}/cli.git" "refs/tags/v${cli_version}" "${tmp}/cli"
+  cp "${tmp}/cli/generator/commands.toml" "${in}/cli-commands.toml"
 else
   cp "${ROOT}/${commands}" "${in}/commands.json"
+  : > "${in}/cli-commands.toml"
 fi
 
 # The provider's schema, and the API revision its release was generated from.

@@ -11,10 +11,10 @@ description: >-
   role bindings, projects or billing data through an SDK.
 license: Apache-2.0
 metadata:
-  api-revision: "227636fb9bf7bc1081c983acff81ad5b0ac70d44"
-  sdk-go-version: "0.27.0"
-  sdk-rust-version: "0.25.0"
-  sdk-typescript-version: "0.26.0"
+  api-revision: "bff84eefda65720ba08cac1cd0379a8ecc3f47a0"
+  sdk-go-version: "0.34.0"
+  sdk-rust-version: "0.33.0"
+  sdk-typescript-version: "0.33.0"
 ---
 # Origin Cloud with the SDKs
 
@@ -75,9 +75,21 @@ MCP tools.
   `//pvs.origincloudapis.eu/projects/my-project/zones/eu-central1-az1/volumes/vol-1a2b3c`.
   The resource's `name` field is the relative part,
   `projects/my-project/zones/eu-central1-az1/volumes/vol-1a2b3c`.
+- Every input that names a resource takes its full name. Its host is the
+  service of the resource named, which may be another than the one called:
+  a volume attached to an instance is `//pvs.origincloudapis.eu/…`.
 - A reference to another resource, an IAM binding's member and an audit
   entry's subject are full names: give the whole name, never a bare id, an
-  email address or a display name.
+  email address or a display name. A catalog entry is one too:
+  `//pvs.origincloudapis.eu/storageClasses/gp1`, not `gp1`.
+- A member is an IAM full name: a user,
+  `//iam.origincloudapis.eu/users/{user}`; a service account,
+  `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`;
+  a service agent, `//iam.origincloudapis.eu/serviceAgents/{service_agent}`.
+  Find a user's by the email address their account verified with IAM's
+  `LookupUser` (`users:lookup`), which needs `iam.role.assign` in the
+  organization. A role is `roles/{role}`, its id dotted, never slashed:
+  `roles/compute.admin`.
 - Take names from what the API answered; don't build them from display
   names, and don't expect a URN.
 
@@ -195,10 +207,11 @@ file.
 <!-- BEGIN GENERATED references -->
 | Service | Reference | Resources |
 |---|---|---|
-| billing | [references/billing.md](references/billing.md) | billingAccounts, projectBillingInfos, billingCountries, spendLimits |
+| billing | [references/billing.md](references/billing.md) | billingAccounts, projectBillingInfos, billingCountries, legalAcceptances, legalDocuments, legalDocumentVersions, spendLimits |
 | compute | [references/compute.md](references/compute.md) | instanceTypes, imageFamilies, images, instances, keyPairs, publicImages, volumeAttachments |
 | dns | [references/dns.md](references/dns.md) | hostedZones, recordSets, vpcAttachments |
 | iam | [references/iam.md](references/iam.md) | auditLogEntries, federatedCredentials, permissions, roles, roleBindings, serviceAccounts, users |
+| kms | [references/kms.md](references/kms.md) | grants, keys, publicKeys |
 | location | [references/location.md](references/location.md) | regions, zones |
 | network | [references/network.md](references/network.md) | acls, aclAssociations, aclRules, dnsPolicies, dnsPolicyAssociations, floatingIps, floatingIpAssociations, internetGateways, natGateways, networkInterfaces, routes, routeTables, routeTableAssociations, securityGroups, securityGroupAssociations, securityGroupRules, subnets, vpcs |
 | observability | [references/observability.md](references/observability.md) | — |

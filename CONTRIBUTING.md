@@ -151,7 +151,12 @@ its credentials in the environment and this machine's toolchains.
 A task with an `api` runs the real `origin` CLI against a fake API,
 `evals/fake-api`: a world of resources (`skills/{skill}/evals/worlds/`)
 that it reads, lists, creates, changes and deletes as the API does, with
-operations that take a moment, and a log of every request it received. A
+operations that take a moment, and a log of every request it received. As
+the API does, it holds and takes every reference to another resource, a
+role binding's member and role included, as a full name
+(`//{service}.origincloudapis.eu/{relative name}`, a user by id), and refuses
+a relative name, `serviceAccount:{id}` or an email address in its place; a
+list filtered by a reference matches the full name alone. A
 task's checks can then ask what the agent sent (`requests_include`,
 `requests_exclude`), such as no `DELETE` before the user said yes, or an
 attachment only after the volume's operation was done. The fake API serves

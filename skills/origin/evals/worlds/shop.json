@@ -5,18 +5,19 @@
   "default-zone": "eu-central1-az1",
   "output-format": "table"
  },
+ "caller": "users/6f0c5a1e-2b7d-4c1a-9e3f-5d8a7b1c2e40",
  "resources": [
   {
    "name": "regions/eu-central1",
    "displayName": "EU Central 1",
    "zones": [
-    "zones/eu-central1-az1",
-    "zones/eu-central1-az2"
+    "//location.origincloudapis.eu/zones/eu-central1-az1",
+    "//location.origincloudapis.eu/zones/eu-central1-az2"
    ]
   },
   {
    "name": "zones/eu-central1-az1",
-   "region": "regions/eu-central1",
+   "region": "//location.origincloudapis.eu/regions/eu-central1",
    "services": [
     "compute",
     "network",
@@ -26,7 +27,7 @@
   },
   {
    "name": "zones/eu-central1-az2",
-   "region": "regions/eu-central1",
+   "region": "//location.origincloudapis.eu/regions/eu-central1",
    "services": [
     "compute",
     "network",
@@ -42,19 +43,19 @@
   },
   {
    "name": "projects/shop-prod",
-   "organization": "organizations/org-acme",
+   "organization": "//resourcemanager.origincloudapis.eu/organizations/org-acme",
    "displayName": "Shop production",
    "createTime": "2026-09-01T08:05:00Z"
   },
   {
    "name": "projects/shop-staging",
-   "organization": "organizations/org-acme",
+   "organization": "//resourcemanager.origincloudapis.eu/organizations/org-acme",
    "displayName": "Shop staging",
    "createTime": "2026-09-01T08:06:00Z"
   },
   {
-   "name": "users/me",
-   "member": "user:dana@acme-shop.example",
+   "name": "users/6f0c5a1e-2b7d-4c1a-9e3f-5d8a7b1c2e40",
+   "member": "//iam.origincloudapis.eu/users/6f0c5a1e-2b7d-4c1a-9e3f-5d8a7b1c2e40",
    "email": "dana@acme-shop.example",
    "emailVerified": true,
    "givenName": "Dana",
@@ -126,12 +127,12 @@
   },
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/instances/i-web1",
-   "instanceType": "instanceTypes/gp1.core.4",
-   "imageFamily": "imageFamilies/debian-12",
-   "keyPair": "projects/shop-prod/keyPairs/kp-ops",
+   "instanceType": "//compute.origincloudapis.eu/instanceTypes/gp1.core.4",
+   "imageFamily": "//compute.origincloudapis.eu/imageFamilies/debian-12",
+   "keyPair": "//compute.origincloudapis.eu/projects/shop-prod/keyPairs/kp-ops",
    "loginUser": "debian",
    "networkInterfaces": [
-    "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-web1"
+    "//network.origincloudapis.eu/projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-web1"
    ],
    "state": "RUNNING",
    "createTime": "2026-10-02T09:14:00Z",
@@ -140,19 +141,19 @@
    },
    "interfaceAddresses": [
     {
-     "networkInterface": "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-web1",
+     "networkInterface": "//network.origincloudapis.eu/projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-web1",
      "ipv4Address": "10.20.1.11"
     }
    ]
   },
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/instances/i-db1",
-   "instanceType": "instanceTypes/gp1.core.4",
-   "imageFamily": "imageFamilies/debian-12",
-   "keyPair": "projects/shop-prod/keyPairs/kp-ops",
+   "instanceType": "//compute.origincloudapis.eu/instanceTypes/gp1.core.4",
+   "imageFamily": "//compute.origincloudapis.eu/imageFamilies/debian-12",
+   "keyPair": "//compute.origincloudapis.eu/projects/shop-prod/keyPairs/kp-ops",
    "loginUser": "debian",
    "networkInterfaces": [
-    "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-db1"
+    "//network.origincloudapis.eu/projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-db1"
    ],
    "state": "RUNNING",
    "createTime": "2026-10-02T09:14:00Z",
@@ -161,28 +162,28 @@
    },
    "interfaceAddresses": [
     {
-     "networkInterface": "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-db1",
+     "networkInterface": "//network.origincloudapis.eu/projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-db1",
      "ipv4Address": "10.20.1.12"
     }
    ]
   },
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/instances/i-web1/volumeAttachments/att-boot1",
-   "volume": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-boot1",
+   "volume": "//pvs.origincloudapis.eu/projects/shop-prod/zones/eu-central1-az1/volumes/vol-boot1",
    "device": "vda",
    "boot": true,
    "state": "ATTACHED"
   },
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/instances/i-db1/volumeAttachments/att-boot2",
-   "volume": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-boot2",
+   "volume": "//pvs.origincloudapis.eu/projects/shop-prod/zones/eu-central1-az1/volumes/vol-boot2",
    "device": "vda",
    "boot": true,
    "state": "ATTACHED"
   },
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/instances/i-db1/volumeAttachments/att-pgdata",
-   "volume": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-pgdata",
+   "volume": "//pvs.origincloudapis.eu/projects/shop-prod/zones/eu-central1-az1/volumes/vol-pgdata",
    "device": "vdb",
    "boot": false,
    "state": "ATTACHED"
@@ -190,7 +191,7 @@
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-boot1",
    "sizeGib": 20,
-   "storageClass": "storageClasses/gp1",
+   "storageClass": "//pvs.origincloudapis.eu/storageClasses/gp1",
    "state": "IN_USE",
    "attachment": "att-boot1",
    "resizeState": "RESIZE_COMPLETED",
@@ -201,7 +202,7 @@
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-boot2",
    "sizeGib": 20,
-   "storageClass": "storageClasses/gp1",
+   "storageClass": "//pvs.origincloudapis.eu/storageClasses/gp1",
    "state": "IN_USE",
    "attachment": "att-boot2",
    "resizeState": "RESIZE_COMPLETED",
@@ -212,7 +213,7 @@
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-pgdata",
    "sizeGib": 100,
-   "storageClass": "storageClasses/gp1",
+   "storageClass": "//pvs.origincloudapis.eu/storageClasses/gp1",
    "state": "IN_USE",
    "attachment": "att-pgdata",
    "resizeState": "RESIZE_COMPLETED",
@@ -223,7 +224,7 @@
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-scratch",
    "sizeGib": 50,
-   "storageClass": "storageClasses/gp1",
+   "storageClass": "//pvs.origincloudapis.eu/storageClasses/gp1",
    "state": "AVAILABLE",
    "resizeState": "RESIZE_COMPLETED",
    "tags": {
@@ -233,7 +234,7 @@
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-archive",
    "sizeGib": 500,
-   "storageClass": "storageClasses/gp1",
+   "storageClass": "//pvs.origincloudapis.eu/storageClasses/gp1",
    "state": "AVAILABLE",
    "resizeState": "RESIZE_COMPLETED",
    "tags": {
@@ -243,7 +244,7 @@
   {
    "name": "projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
    "ipv4CidrBlock": "10.20.0.0/16",
-   "internetGateway": "projects/shop-prod/regions/eu-central1/internetGateways/igw-main",
+   "internetGateway": "//network.origincloudapis.eu/projects/shop-prod/regions/eu-central1/internetGateways/igw-main",
    "createTime": "2026-10-02T09:14:00Z",
    "tags": {
     "origin:name": "main"
@@ -251,12 +252,12 @@
   },
   {
    "name": "projects/shop-prod/regions/eu-central1/internetGateways/igw-main",
-   "vpc": "projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
+   "vpc": "//network.origincloudapis.eu/projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
    "createTime": "2026-10-02T09:14:00Z"
   },
   {
    "name": "projects/shop-prod/regions/eu-central1/routeTables/rt-public",
-   "vpc": "projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
+   "vpc": "//network.origincloudapis.eu/projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
    "main": false,
    "createTime": "2026-10-02T09:14:00Z",
    "tags": {
@@ -266,12 +267,12 @@
   {
    "name": "projects/shop-prod/regions/eu-central1/routeTables/rt-public/routes/rte-default",
    "destination": "0.0.0.0/0",
-   "internetGateway": "projects/shop-prod/regions/eu-central1/internetGateways/igw-main"
+   "internetGateway": "//network.origincloudapis.eu/projects/shop-prod/regions/eu-central1/internetGateways/igw-main"
   },
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/subnets/sub-public",
-   "vpc": "projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
-   "routeTable": "projects/shop-prod/regions/eu-central1/routeTables/rt-public",
+   "vpc": "//network.origincloudapis.eu/projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
+   "routeTable": "//network.origincloudapis.eu/projects/shop-prod/regions/eu-central1/routeTables/rt-public",
    "ipv4CidrBlock": "10.20.1.0/24",
    "availableIpv4AddressCount": 240,
    "createTime": "2026-10-02T09:14:00Z",
@@ -281,11 +282,11 @@
   },
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/subnets/sub-public/routeTableAssociations/rta-public",
-   "routeTable": "projects/shop-prod/regions/eu-central1/routeTables/rt-public"
+   "routeTable": "//network.origincloudapis.eu/projects/shop-prod/regions/eu-central1/routeTables/rt-public"
   },
   {
    "name": "projects/shop-prod/regions/eu-central1/securityGroups/sg-web",
-   "vpc": "projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
+   "vpc": "//network.origincloudapis.eu/projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
    "createTime": "2026-10-02T09:14:00Z",
    "tags": {
     "origin:name": "web"
@@ -315,7 +316,7 @@
   },
   {
    "name": "projects/shop-prod/regions/eu-central1/securityGroups/sg-db",
-   "vpc": "projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
+   "vpc": "//network.origincloudapis.eu/projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
    "createTime": "2026-10-02T09:14:00Z",
    "tags": {
     "origin:name": "db"
@@ -326,12 +327,12 @@
    "direction": "INGRESS",
    "protocol": "TCP",
    "firstPort": 5432,
-   "peerSecurityGroup": "projects/shop-prod/regions/eu-central1/securityGroups/sg-web",
+   "peerSecurityGroup": "//network.origincloudapis.eu/projects/shop-prod/regions/eu-central1/securityGroups/sg-web",
    "description": "Postgres from the web servers"
   },
   {
    "name": "projects/shop-prod/regions/eu-central1/securityGroups/sg-legacy",
-   "vpc": "projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
+   "vpc": "//network.origincloudapis.eu/projects/shop-prod/regions/eu-central1/vpcs/vpc-main",
    "createTime": "2026-09-03T10:00:00Z",
    "tags": {
     "origin:name": "legacy-ftp"
@@ -347,48 +348,48 @@
   },
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-web1",
-   "subnet": "projects/shop-prod/zones/eu-central1-az1/subnets/sub-public",
+   "subnet": "//network.origincloudapis.eu/projects/shop-prod/zones/eu-central1-az1/subnets/sub-public",
    "securityGroups": [
-    "projects/shop-prod/regions/eu-central1/securityGroups/sg-web"
+    "//network.origincloudapis.eu/projects/shop-prod/regions/eu-central1/securityGroups/sg-web"
    ],
    "ipv4Address": "10.20.1.11",
    "state": "ATTACHED",
-   "instance": "projects/shop-prod/zones/eu-central1-az1/instances/i-web1"
+   "instance": "//compute.origincloudapis.eu/projects/shop-prod/zones/eu-central1-az1/instances/i-web1"
   },
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-web1/securityGroupAssociations/sga-web1",
-   "securityGroup": "projects/shop-prod/regions/eu-central1/securityGroups/sg-web"
+   "securityGroup": "//network.origincloudapis.eu/projects/shop-prod/regions/eu-central1/securityGroups/sg-web"
   },
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-db1",
-   "subnet": "projects/shop-prod/zones/eu-central1-az1/subnets/sub-public",
+   "subnet": "//network.origincloudapis.eu/projects/shop-prod/zones/eu-central1-az1/subnets/sub-public",
    "securityGroups": [
-    "projects/shop-prod/regions/eu-central1/securityGroups/sg-db"
+    "//network.origincloudapis.eu/projects/shop-prod/regions/eu-central1/securityGroups/sg-db"
    ],
    "ipv4Address": "10.20.1.12",
    "state": "ATTACHED",
-   "instance": "projects/shop-prod/zones/eu-central1-az1/instances/i-db1"
+   "instance": "//compute.origincloudapis.eu/projects/shop-prod/zones/eu-central1-az1/instances/i-db1"
   },
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-db1/securityGroupAssociations/sga-db1",
-   "securityGroup": "projects/shop-prod/regions/eu-central1/securityGroups/sg-db"
+   "securityGroup": "//network.origincloudapis.eu/projects/shop-prod/regions/eu-central1/securityGroups/sg-db"
   },
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/floatingIps/fip-web1",
    "address": "192.0.2.21",
-   "networkInterface": "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-web1",
+   "networkInterface": "//network.origincloudapis.eu/projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-web1",
    "privateAddress": "10.20.1.11",
    "createTime": "2026-10-02T09:14:00Z"
   },
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/floatingIps/fip-web1/associations/fia-web1",
-   "networkInterface": "projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-web1",
+   "networkInterface": "//network.origincloudapis.eu/projects/shop-prod/zones/eu-central1-az1/networkInterfaces/nic-web1",
    "privateAddress": "10.20.1.11"
   },
   {
    "name": "organizations/org-acme/serviceAccounts/sa-ci",
    "displayName": "ci-deployer",
-   "member": "serviceAccount:sa-ci",
+   "member": "//iam.origincloudapis.eu/organizations/org-acme/serviceAccounts/sa-ci",
    "state": "ACTIVE",
    "type": "WORKLOAD",
    "createTime": "2026-09-10T12:00:00Z"
@@ -396,7 +397,7 @@
   {
    "name": "organizations/org-acme/serviceAccounts/sa-backup",
    "displayName": "backup",
-   "member": "serviceAccount:sa-backup",
+   "member": "//iam.origincloudapis.eu/organizations/org-acme/serviceAccounts/sa-backup",
    "state": "ACTIVE",
    "type": "EXTERNAL",
    "clientId": "oc-sa-backup",
@@ -417,8 +418,8 @@
    "displayName": "Compute Admin",
    "description": "Launch, change, stop and terminate instances, and manage images and key pairs.",
    "includedPermissions": [
-    "permissions/compute.instance.create",
-    "permissions/compute.instance.delete"
+    "//iam.origincloudapis.eu/permissions/compute.instance.create",
+    "//iam.origincloudapis.eu/permissions/compute.instance.delete"
    ]
   },
   {
@@ -438,22 +439,22 @@
   },
   {
    "name": "organizations/org-acme/roleBindings/rb-owner",
-   "member": "user:dana@acme-shop.example",
-   "role": "roles/owner",
-   "creator": "platform",
+   "member": "//iam.origincloudapis.eu/users/6f0c5a1e-2b7d-4c1a-9e3f-5d8a7b1c2e40",
+   "role": "//iam.origincloudapis.eu/roles/owner",
+   "creator": "//iam.origincloudapis.eu/services/platform",
    "createTime": "2026-09-01T08:00:00Z"
   },
   {
    "name": "organizations/org-acme/roleBindings/rb-ci-view",
-   "member": "serviceAccount:sa-ci",
-   "role": "roles/viewer",
-   "project": "projects/shop-prod",
-   "creator": "user:dana@acme-shop.example",
+   "member": "//iam.origincloudapis.eu/organizations/org-acme/serviceAccounts/sa-ci",
+   "role": "//iam.origincloudapis.eu/roles/viewer",
+   "project": "//resourcemanager.origincloudapis.eu/projects/shop-prod",
+   "creator": "//iam.origincloudapis.eu/users/6f0c5a1e-2b7d-4c1a-9e3f-5d8a7b1c2e40",
    "createTime": "2026-09-10T12:01:00Z"
   },
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/snapshots/snap-pg-0901",
-   "sourceVolume": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-pgdata",
+   "sourceVolume": "//pvs.origincloudapis.eu/projects/shop-prod/zones/eu-central1-az1/volumes/vol-pgdata",
    "sourceSizeGib": 100,
    "state": "COMPLETED",
    "protectionState": "UNPROTECTED",
@@ -463,7 +464,7 @@
   },
   {
    "name": "projects/shop-prod/zones/eu-central1-az1/snapshots/snap-pg-1001",
-   "sourceVolume": "projects/shop-prod/zones/eu-central1-az1/volumes/vol-pgdata",
+   "sourceVolume": "//pvs.origincloudapis.eu/projects/shop-prod/zones/eu-central1-az1/volumes/vol-pgdata",
    "sourceSizeGib": 100,
    "state": "COMPLETED",
    "protectionState": "UNPROTECTED",
@@ -496,7 +497,7 @@
  "created": {
   "volumes": {
    "state": "AVAILABLE",
-   "storageClass": "storageClasses/gp1",
+   "storageClass": "//pvs.origincloudapis.eu/storageClasses/gp1",
    "resizeState": "RESIZE_COMPLETED"
   },
   "snapshots": {
@@ -520,7 +521,7 @@
    "device": "vdc"
   },
   "roleBindings": {
-   "creator": "user:dana@acme-shop.example",
+   "creator": "//iam.origincloudapis.eu/users/6f0c5a1e-2b7d-4c1a-9e3f-5d8a7b1c2e40",
    "createTime": "2026-11-13T10:00:00Z"
   }
  },

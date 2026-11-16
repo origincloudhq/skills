@@ -1,5 +1,7 @@
 //! The CLI's command tree, as a CLI release publishes it (`commands.json`):
-//! every command's path, flags and the API method it calls.
+//! every command's path, flags and the API method it calls; and the methods
+//! the release leaves without a command, with the reason, from the
+//! `[[no_command]]` list of its `generator/commands.toml` at its tag.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -15,6 +17,24 @@ pub struct Tree {
     pub commands: Vec<Command>,
     #[serde(default)]
     pub global_args: Vec<Arg>,
+    /// The reason the release has no command for a method, by the method's
+    /// service (`billing`) and name (`DownloadLegalDocumentVersion`).
+    #[serde(skip)]
+    pub no_command: BTreeMap<(String, String), String>,
+}
+
+/// The parts of the CLI's `generator/commands.toml` the skills read.
+#[derive(Debug, Default, Deserialize)]
+struct Table {
+    #[serde(default)]
+    no_command: Vec<NoCommand>,
+}
+
+#[derive(Debug, Deserialize)]
+struct NoCommand {
+    service: String,
+    method: String,
+    why: String,
 }
 
 // The format's other fields (`about`, `long_running`, a flag's `help` and
@@ -51,6 +71,26 @@ impl Tree {
         let text =
             std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
         serde_json::from_str(&text).with_context(|| format!("reading {}", path.display()))
+    }
+
+    /// Takes the release's `[[no_command]]` list from its
+    /// `generator/commands.toml`, `table`.
+    pub fn with_table(mut self, table: &str) -> Result<Self> {
+        let table: Table = toml::from_str(table).context("reading the CLI's commands.toml")?;
+        self.no_command = table
+            .no_command
+            .into_iter()
+            .map(|n| ((n.service, n.method), n.why))
+            .collect();
+        Ok(self)
+    }
+
+    /// Why the release has no command for `method` of `service`, when its
+    /// table says.
+    pub fn no_command(&self, service: &str, method: &str) -> Option<&str> {
+        self.no_command
+            .get(&(service.to_owned(), method.to_owned()))
+            .map(String::as_str)
     }
 
     /// The command calling each method, by the method's full name. The

@@ -12,8 +12,8 @@ description: >-
   `origin mcp serve` tools.
 license: Apache-2.0
 metadata:
-  api-revision: "227636fb9bf7bc1081c983acff81ad5b0ac70d44"
-  cli-version: "1.20.1"
+  api-revision: "bff84eefda65720ba08cac1cd0379a8ecc3f47a0"
+  cli-version: "1.21.1"
 ---
 # Origin Cloud with the `origin` CLI
 
@@ -32,7 +32,7 @@ command and flag here and in the references is one that release has;
    override them, and `--project`, `--zone` and `--region` override both;
    the global `--config <FILE>`, given before the command group, reads
    another profile file when the user names one. With no project set and none named by the user, ask; list the choices
-   with `origin resourcemanager list-projects --organization <organization> --output json`.
+   with `origin resourcemanager list-projects --organization //resourcemanager.origincloudapis.eu/organizations/<organization> --output json`.
 3. `origin iam get-user --user me --output json` shows who is logged in.
    When a command answers `not logged in`, the user logs in, not you:
    `origin id login` opens their browser, and `origin id login --device`
@@ -94,9 +94,21 @@ MCP tools.
   `//pvs.origincloudapis.eu/projects/my-project/zones/eu-central1-az1/volumes/vol-1a2b3c`.
   The resource's `name` field is the relative part,
   `projects/my-project/zones/eu-central1-az1/volumes/vol-1a2b3c`.
+- Every input that names a resource takes its full name. Its host is the
+  service of the resource named, which may be another than the one called:
+  a volume attached to an instance is `//pvs.origincloudapis.eu/…`.
 - A reference to another resource, an IAM binding's member and an audit
   entry's subject are full names: give the whole name, never a bare id, an
-  email address or a display name.
+  email address or a display name. A catalog entry is one too:
+  `//pvs.origincloudapis.eu/storageClasses/gp1`, not `gp1`.
+- A member is an IAM full name: a user,
+  `//iam.origincloudapis.eu/users/{user}`; a service account,
+  `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`;
+  a service agent, `//iam.origincloudapis.eu/serviceAgents/{service_agent}`.
+  Find a user's by the email address their account verified with IAM's
+  `LookupUser` (`users:lookup`), which needs `iam.role.assign` in the
+  organization. A role is `roles/{role}`, its id dotted, never slashed:
+  `roles/compute.admin`.
 - Take names from what the API answered; don't build them from display
   names, and don't expect a URN.
 
@@ -134,18 +146,42 @@ prints only the names, one per line.
 **Names.** A resource's `name` is its relative name, such as
 `projects/my-project/zones/eu-central1-az1/volumes/vol-1a2b3c`; its full
 name puts its service's host in front,
-`//pvs.origincloudapis.eu/projects/my-project/zones/eu-central1-az1/volumes/vol-1a2b3c`,
-and is how you write it to the user or across services. A flag that names
-a resource takes its `name` as a command printed it, or its id (the last
-segment), which the command completes with `--project` and `--zone` or
-`--region` and their defaults; the CLI doesn't take the `//…` form. Pass
-the whole `name` for anything outside the default project and zone. A
-flag whose help says "the `{…}` part of the resource names the command
-builds" takes the id alone: the organization, and the parent of what the
-command lists or makes, such as `--security-group` for a rule or
-`--instance` for a volume attachment (`${name##*/}` is the id). A role
-binding's member is `user:<email>` or a service account's `member` field,
-`serviceAccount:<id>`; read it, don't build it. Ignore `urn` fields.
+`//pvs.origincloudapis.eu/projects/my-project/zones/eu-central1-az1/volumes/vol-1a2b3c`.
+Every flag that names a resource takes its full name, on the host of the
+resource's own service, which may be another than the command's:
+`origin compute create-volume-attachment --volume` takes
+`//pvs.origincloudapis.eu/…`. Build a full name from a `name` a command
+printed by putting its service's host in front:
+`jq -r '"//pvs.origincloudapis.eu/" + .name'`. In the commands here and in
+the references, `<volume>` and the like stand for the resource's full
+name.
+
+- **A reference** to another resource (`--volume` of an attachment,
+  `--key-pair`, `--image`, `--storage-class`, `--peer-security-group`) is
+  never completed: give its full name, which the API requires of a
+  reference. An id is refused, catalog ids too:
+  `--storage-class //pvs.origincloudapis.eu/storageClasses/gp1`,
+  `--instance-type //compute.origincloudapis.eu/instanceTypes/gp1.core.2`,
+  `--image-family //compute.origincloudapis.eu/imageFamilies/debian-12`.
+  A reference doesn't set the
+  command's own project or zone: `create-instance` runs in `--zone` or the
+  profile's zone, whatever zone its image names.
+- **The resource a command acts on, and its parents** (`--volume` of
+  `get-volume`, `--security-group` of a rule, `--instance` of a volume
+  attachment) take a full name, or a `name`, which fills in the project and
+  zone or region, or an id, which `--project` and `--zone` or `--region`
+  and their defaults complete. Where `--project`, `--zone`, `--region` or
+  `--organization` build the command's own name they take ids alone; where
+  one is a reference, as `--project` of `iam create-role-binding` and
+  `--organization` of `iam lookup-user` are, it takes a whole name. The
+  flag's help says which.
+
+A role binding's member is an IAM full name: a service account's is
+`//iam.origincloudapis.eu/` and its `name`; a user's is
+`//iam.origincloudapis.eu/` and the `name`
+`origin iam lookup-user --email <address> --organization //resourcemanager.origincloudapis.eu/organizations/<organization>`
+answers, which needs `iam.role.assign` in that organization. A role is
+`roles/{role}`, such as `roles/compute.admin`. Ignore `urn` fields.
 
 **Operations.** A create, update or delete in `compute`, `network` and
 `pvs` starts an operation. The command waits for it and prints the result,
@@ -220,10 +256,11 @@ and the checks the commands alone don't show.
 <!-- BEGIN GENERATED references -->
 | Service | Reference | Resources |
 |---|---|---|
-| billing | [references/billing.md](references/billing.md), [workflows](references/billing-workflows.md) | billingAccounts, projectBillingInfos, billingCountries, spendLimits |
+| billing | [references/billing.md](references/billing.md), [workflows](references/billing-workflows.md) | billingAccounts, projectBillingInfos, billingCountries, legalAcceptances, legalDocuments, legalDocumentVersions, spendLimits |
 | compute | [references/compute.md](references/compute.md), [workflows](references/compute-workflows.md) | instanceTypes, imageFamilies, images, instances, keyPairs, publicImages, volumeAttachments |
 | dns | [references/dns.md](references/dns.md) | hostedZones, recordSets, vpcAttachments |
 | iam | [references/iam.md](references/iam.md), [workflows](references/iam-workflows.md) | auditLogEntries, federatedCredentials, permissions, roles, roleBindings, serviceAccounts, users |
+| kms | [references/kms.md](references/kms.md) | grants, keys, publicKeys |
 | location | [references/location.md](references/location.md) | regions, zones |
 | network | [references/network.md](references/network.md), [workflows](references/network-workflows.md) | acls, aclAssociations, aclRules, dnsPolicies, dnsPolicyAssociations, floatingIps, floatingIpAssociations, internetGateways, natGateways, networkInterfaces, routes, routeTables, routeTableAssociations, securityGroups, securityGroupAssociations, securityGroupRules, subnets, vpcs |
 | observability | [references/observability.md](references/observability.md) | — |

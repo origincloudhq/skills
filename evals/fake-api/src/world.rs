@@ -18,6 +18,18 @@ const SETTLE: Duration = Duration::from_millis(1500);
 /// The longest a `:wait` call waits when it names no timeout.
 const WAIT: Duration = Duration::from_secs(60);
 
+/// The query parameters of a list that narrow it by a reference to another
+/// resource: each takes a full name.
+const REFERENCE_FILTERS: &[&str] = &[
+    "volume",
+    "vpc",
+    "subnet",
+    "project",
+    "organization",
+    "member",
+    "actor",
+];
+
 /// What a world file holds.
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -38,6 +50,9 @@ pub struct World {
     pub zone: Option<String>,
     /// The CLI profile the evals write for the world; not read here.
     pub profile: Option<Value>,
+    /// The name of the user the calls are made as, `users/{user}`, which
+    /// `users/me` is another name for.
+    pub caller: Option<String>,
 }
 
 /// A canned answer.
@@ -101,6 +116,7 @@ pub struct State {
     created: BTreeMap<String, Map<String, Value>>,
     ids: BTreeMap<String, String>,
     zone: String,
+    caller: Option<String>,
     /// The operation each `requestId` started, for retries.
     requests: BTreeMap<String, Value>,
     counter: u64,
@@ -148,6 +164,7 @@ impl State {
             created: world.created,
             ids: world.ids,
             zone: world.zone.unwrap_or_else(|| "eu-central1-az1".to_owned()),
+            caller: world.caller,
             requests: BTreeMap::new(),
             counter: 0,
             log,
@@ -266,6 +283,10 @@ impl State {
         if self.operations.contains_key(name) {
             return self.operation(name);
         }
+        let name = match (name, &self.caller) {
+            ("users/me", Some(caller)) => caller.as_str(),
+            _ => name,
+        };
         match self.resources.get(name) {
             Some(r) => Answer::Json(200, r.clone()),
             None => error(404, "NOT_FOUND", &format!("{name} not found")),
@@ -282,6 +303,18 @@ impl State {
             .iter()
             .filter(|(k, v)| !v.is_empty() && !matches!(k.as_str(), "pageSize" | "pageToken"))
             .collect();
+        // A filter by a reference is given by the full name, as a
+        // resource's field holds it; the API refuses any other form.
+        if let Some((k, v)) = filters
+            .iter()
+            .find(|(k, v)| REFERENCE_FILTERS.contains(&k.as_str()) && !is_full_name(v))
+        {
+            return error(
+                400,
+                "BAD_REQUEST",
+                &format!("{k} must be a full name, //{{service}}.origincloudapis.eu/…: got {v}"),
+            );
+        }
         let items: Vec<Value> = self
             .resources
             .iter()
@@ -295,7 +328,10 @@ impl State {
             })
             .filter(|(_, r)| {
                 filters.iter().all(|(k, v)| match r.get(k) {
-                    Some(Value::String(s)) => s == v || s.rsplit('/').next() == Some(v),
+                    Some(Value::String(s)) => s == v,
+                    // A binding limited to no project isn't one of a
+                    // project's, nor is an attachment of another volume.
+                    None => !REFERENCE_FILTERS.contains(&k.as_str()),
                     _ => true,
                 })
             })
@@ -326,7 +362,7 @@ impl State {
                 return error(404, "NOT_FOUND", &format!("{parent} not found"));
             }
         }
-        if let Err(answer) = self.check_references(&body) {
+        if let Err(answer) = self.check_references(collection, &body) {
             return answer;
         }
         self.counter += 1;
@@ -450,39 +486,78 @@ impl State {
 
     /// A create naming a resource that isn't there, or isn't ready, is
     /// refused, as the API refuses it; so is a role binding for a member
-    /// no account has.
-    fn check_references(&self, body: &Value) -> Result<(), Answer> {
+    /// no account has, a second binding of a role to a member at one
+    /// scope, and a reference that is not a full name,
+    /// `//{service}.origincloudapis.eu/{relative name}`: a relative name,
+    /// a bare id, `serviceAccount:sa-1` or an email address.
+    fn check_references(&self, collection: &str, body: &Value) -> Result<(), Answer> {
         let name = Regex::new(
-            r"^(projects|organizations|zones|regions|roles|instanceTypes|imageFamilies|storageClasses)/[^/]+(/|$)",
+            r"^(projects|organizations|zones|regions|roles|instanceTypes|imageFamilies|storageClasses|users|serviceAgents)/[^/]+(/|$)",
         )
         .expect("a valid pattern");
         if let Some(member) = body.get("member").and_then(Value::as_str) {
-            if !self
-                .resources
-                .values()
-                .any(|r| r.get("member").and_then(Value::as_str) == Some(member))
-            {
+            let account = relative(member)
+                .filter(|_| member.starts_with("//iam.origincloudapis.eu/"))
+                .ok_or_else(|| {
+                    error(
+                        400,
+                        "BAD_REQUEST",
+                        &format!(
+                            "member must be an IAM full name, //iam.origincloudapis.eu/…: got {member}"
+                        ),
+                    )
+                })?;
+            if !self.resources.contains_key(account) {
                 return Err(error(404, "NOT_FOUND", &format!("no account is {member}")));
             }
         }
         let mut strings = Vec::new();
         collect_strings(body, &mut strings);
         for s in strings {
-            if !name.is_match(s) || s.split('/').count() % 2 == 1 {
+            let Some(rel) = relative(s) else {
+                if name.is_match(s) {
+                    return Err(error(
+                        400,
+                        "BAD_REQUEST",
+                        &format!("{s} must be a full name, //{{service}}.origincloudapis.eu/{s}"),
+                    ));
+                }
+                continue;
+            };
+            if !name.is_match(rel) || rel.split('/').count() % 2 == 1 {
                 continue;
             }
-            match self.resources.get(s) {
-                None => return Err(error(404, "NOT_FOUND", &format!("{s} not found"))),
+            match self.resources.get(rel) {
+                None => return Err(error(404, "NOT_FOUND", &format!("{rel} not found"))),
                 Some(r) => {
                     let state = r.get("state").and_then(Value::as_str).unwrap_or_default();
                     if matches!(state, "CREATING" | "PENDING" | "INITIALIZING") {
                         return Err(error(
                             400,
                             "FAILED_PRECONDITION",
-                            &format!("{s} is {state}: wait until it is ready"),
+                            &format!("{rel} is {state}: wait until it is ready"),
                         ));
                     }
                 }
+            }
+        }
+        if collection.ends_with("/roleBindings") {
+            let held = |r: &Value| {
+                ["member", "role", "project"]
+                    .iter()
+                    .all(|k| r.get(k) == body.get(k))
+            };
+            let prefix = format!("{collection}/");
+            if self
+                .resources
+                .iter()
+                .any(|(n, r)| n.starts_with(&prefix) && held(r))
+            {
+                return Err(error(
+                    409,
+                    "CONFLICT",
+                    "the member already holds the role at that scope",
+                ));
             }
         }
         Ok(())
@@ -524,6 +599,8 @@ const COLLECTIONS: &[(&str, &str)] = &[
     ("billingAccounts", "billing"),
     ("billingCountries", "billing"),
     ("billingInfo", "billing"),
+    ("legalAcceptances", "billing"),
+    ("legalDocuments", "billing"),
     ("spendLimit", "billing"),
     ("imageFamilies", "compute"),
     ("images", "compute"),
@@ -541,6 +618,9 @@ const COLLECTIONS: &[(&str, &str)] = &[
     ("roles", "iam"),
     ("serviceAccounts", "iam"),
     ("users", "iam"),
+    ("grants", "kms"),
+    ("keys", "kms"),
+    ("publicKey", "kms"),
     ("regions", "location"),
     ("zones", "location"),
     ("aclAssociations", "network"),
@@ -595,6 +675,20 @@ fn public(op: &Value) -> Value {
         o.remove("pendingResponse");
     }
     op
+}
+
+/// The relative name of `name` when it is a full name,
+/// `//{service}.origincloudapis.eu/{relative}`.
+fn relative(name: &str) -> Option<&str> {
+    let (host, relative) = name.strip_prefix("//")?.split_once('/')?;
+    host.strip_suffix(".origincloudapis.eu")
+        .filter(|service| !service.is_empty() && !service.contains('.'))
+        .map(|_| relative)
+}
+
+/// Whether `name` is a full name, `//{service}.origincloudapis.eu/{relative}`.
+fn is_full_name(name: &str) -> bool {
+    relative(name).is_some()
 }
 
 fn collect_strings<'a>(v: &'a Value, out: &mut Vec<&'a str>) {
@@ -814,10 +908,86 @@ mod tests {
             "POST",
             "/v1beta1/projects/p/zones/z/instances/i-1/volumeAttachments",
             &[],
-            &format!(r#"{{"volume":"{VOLUME}"}}"#),
+            &format!(r#"{{"volume":"//pvs.origincloudapis.eu/{VOLUME}"}}"#),
         ));
         assert_eq!(status, 400);
         assert_eq!(e["error"]["details"][0]["reason"], "FAILED_PRECONDITION");
+    }
+
+    /// A reference in a body is a full name, checked as its relative name;
+    /// so is a member, an IAM full name. Any other form is refused.
+    #[test]
+    fn a_full_name_is_taken_and_checked() {
+        let mut s = state(json!({ "resources": [
+            { "name": VOLUME, "state": "AVAILABLE" },
+            { "name": "projects/p/zones/z/instances/i-1", "state": "RUNNING" },
+            { "name": "organizations/o/serviceAccounts/sa-1", "member": "//iam.origincloudapis.eu/organizations/o/serviceAccounts/sa-1" },
+            { "name": "users/u-1", "member": "//iam.origincloudapis.eu/users/u-1" },
+            { "name": "roles/viewer" },
+        ]}));
+        let attach = |s: &mut State, volume: &str| {
+            json(s.handle(
+                "compute",
+                "POST",
+                "/v1beta1/projects/p/zones/z/instances/i-1/volumeAttachments",
+                &[],
+                &format!(r#"{{"volume":"{volume}"}}"#),
+            ))
+            .0
+        };
+        assert_eq!(
+            attach(&mut s, &format!("//pvs.origincloudapis.eu/{VOLUME}")),
+            200
+        );
+        assert_eq!(
+            attach(
+                &mut s,
+                "//pvs.origincloudapis.eu/projects/p/zones/z/volumes/gone"
+            ),
+            404
+        );
+        // The relative name isn't a reference any more.
+        assert_eq!(attach(&mut s, VOLUME), 400);
+        for (member, wanted) in [
+            (
+                "//iam.origincloudapis.eu/organizations/o/serviceAccounts/sa-1",
+                200,
+            ),
+            ("//iam.origincloudapis.eu/users/u-1", 200),
+            ("//iam.origincloudapis.eu/users/gone", 404),
+            (
+                "//iam.origincloudapis.eu/organizations/o/serviceAccounts/gone",
+                404,
+            ),
+            (
+                "//pvs.origincloudapis.eu/organizations/o/serviceAccounts/sa-1",
+                400,
+            ),
+            ("serviceAccount:sa-1", 400),
+            ("user:u-1", 400),
+            ("organizations/o/serviceAccounts/sa-1", 400),
+            ("dana@example.test", 400),
+        ] {
+            let (status, _) = json(s.handle(
+                "iam",
+                "POST",
+                "/v1beta1/organizations/o/roleBindings",
+                &[],
+                &format!(
+                    r#"{{"member":"{member}","role":"//iam.origincloudapis.eu/roles/viewer"}}"#
+                ),
+            ));
+            assert_eq!(status, wanted, "{member}");
+        }
+        // The role is a full name too.
+        let (status, _) = json(s.handle(
+            "iam",
+            "POST",
+            "/v1beta1/organizations/o/roleBindings",
+            &[],
+            r#"{"member":"//iam.origincloudapis.eu/users/u-1","role":"roles/viewer"}"#,
+        ));
+        assert_eq!(status, 400);
     }
 
     #[test]
@@ -828,31 +998,35 @@ mod tests {
             "POST",
             "/v1beta1/projects/p/zones/z/instances/web-1/volumeAttachments",
             &[],
-            &format!(r#"{{"volume":"{VOLUME}"}}"#),
+            &format!(r#"{{"volume":"//pvs.origincloudapis.eu/{VOLUME}"}}"#),
         ));
         assert_eq!(status, 404);
     }
 
     #[test]
     fn a_create_without_operation_is_there_at_once() {
+        const SA: &str = "//iam.origincloudapis.eu/organizations/o/serviceAccounts/sa-1";
+        const VIEWER: &str = "//iam.origincloudapis.eu/roles/viewer";
+        let binding = format!(r#"{{"member":"{SA}","role":"{VIEWER}"}}"#);
         let mut s = state(json!({ "resources": [
-            { "name": "organizations/o/serviceAccounts/sa-1", "member": "serviceAccount:sa-1" },
+            { "name": "organizations/o/serviceAccounts/sa-1", "member": SA },
             { "name": "roles/viewer" },
+            { "name": "projects/p" },
         ]}));
         let (status, _) = json(s.handle(
             "iam",
             "POST",
             "/v1beta1/organizations/o/roleBindings",
             &[],
-            r#"{"member":"serviceAccount:ci","role":"roles/viewer"}"#,
+            &format!(r#"{{"member":"{SA}x","role":"{VIEWER}"}}"#),
         ));
-        assert_eq!(status, 404, "no account is serviceAccount:ci");
+        assert_eq!(status, 404, "no account is sa-1x");
         let (status, b) = json(s.handle(
             "iam",
             "POST",
             "/v1beta1/organizations/o/roleBindings",
             &[("requestId".to_owned(), "r-1".to_owned())],
-            r#"{"member":"serviceAccount:sa-1","role":"roles/viewer"}"#,
+            &binding,
         ));
         assert_eq!(status, 200);
         let name = b["name"].as_str().unwrap().to_owned();
@@ -870,9 +1044,86 @@ mod tests {
             "POST",
             "/v1beta1/organizations/o/roleBindings",
             &[("requestId".to_owned(), "r-1".to_owned())],
-            r#"{"member":"serviceAccount:sa-1","role":"roles/viewer"}"#,
+            &binding,
         ));
         assert_eq!(again["name"], name.as_str());
+        // Another request for the same role of the same member is a
+        // conflict; limited to a project, it is another binding.
+        let (status, _) = json(s.handle(
+            "iam",
+            "POST",
+            "/v1beta1/organizations/o/roleBindings",
+            &[("requestId".to_owned(), "r-2".to_owned())],
+            &binding,
+        ));
+        assert_eq!(status, 409);
+        let (status, _) = json(s.handle(
+            "iam",
+            "POST",
+            "/v1beta1/organizations/o/roleBindings",
+            &[],
+            &format!(
+                r#"{{"member":"{SA}","role":"{VIEWER}","project":"//resourcemanager.origincloudapis.eu/projects/p"}}"#
+            ),
+        ));
+        assert_eq!(status, 200);
+    }
+
+    /// A list filtered by a reference matches the full name a resource
+    /// holds, and nothing else: not the relative name, not the id, not a
+    /// resource without the field; the other forms are refused.
+    #[test]
+    fn a_list_filters_by_full_name() {
+        const SA: &str = "//iam.origincloudapis.eu/organizations/o/serviceAccounts/sa-1";
+        const PROJECT: &str = "//resourcemanager.origincloudapis.eu/projects/p";
+        let mut s = state(json!({ "resources": [
+            { "name": "organizations/o/roleBindings/rb-1", "member": SA, "project": PROJECT },
+            { "name": "organizations/o/roleBindings/rb-2", "member": SA },
+            { "name": "organizations/o/roleBindings/rb-3", "member": "//iam.origincloudapis.eu/users/u-1" },
+        ]}));
+        let mut list = |query: &[(&str, &str)]| {
+            let query: Vec<(String, String)> = query
+                .iter()
+                .map(|(k, v)| ((*k).to_owned(), (*v).to_owned()))
+                .collect();
+            let (status, v) = json(s.handle(
+                "iam",
+                "GET",
+                "/v1beta1/organizations/o/roleBindings",
+                &query,
+                "",
+            ));
+            let names: Vec<String> = v["roleBindings"]
+                .as_array()
+                .map(|a| {
+                    a.iter()
+                        .map(|r| r["name"].as_str().unwrap().to_owned())
+                        .collect()
+                })
+                .unwrap_or_default();
+            (status, names.len())
+        };
+        assert_eq!(list(&[]), (200, 3));
+        assert_eq!(list(&[("member", SA)]), (200, 2));
+        assert_eq!(list(&[("member", SA), ("project", PROJECT)]), (200, 1));
+        assert_eq!(list(&[("project", PROJECT)]), (200, 1));
+        assert_eq!(
+            list(&[("member", "organizations/o/serviceAccounts/sa-1")]).0,
+            400
+        );
+        assert_eq!(list(&[("member", "serviceAccount:sa-1")]).0, 400);
+        assert_eq!(list(&[("project", "projects/p")]).0, 400);
+        assert_eq!(list(&[("project", "p")]).0, 400);
+    }
+
+    #[test]
+    fn users_me_is_the_caller() {
+        let mut s = state(json!({
+            "caller": "users/u-1",
+            "resources": [{ "name": "users/u-1", "member": "//iam.origincloudapis.eu/users/u-1" }],
+        }));
+        let (status, user) = json(s.handle("iam", "GET", "/v1beta1/users/me", &[], ""));
+        assert_eq!((status, user["name"].as_str()), (200, Some("users/u-1")));
     }
 
     /// Every resource name the generated references give, by its service's

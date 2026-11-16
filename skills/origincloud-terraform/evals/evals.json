@@ -158,17 +158,17 @@
           {
             "name": "projects/my-project-123/zones/eu-central1-az1/volumes/vol-1a2b3c",
             "sizeGib": 100,
-            "storageClass": "storageClasses/gp1",
+            "storageClass": "//pvs.origincloudapis.eu/storageClasses/gp1",
             "state": "IN_USE",
             "resizeState": "RESIZE_COMPLETED",
-            "attachment": "projects/my-project-123/zones/eu-central1-az1/instances/i-0db1/volumeAttachments/att-9f41",
+            "attachment": "att-9f41",
             "createTime": "2026-10-02T09:00:00Z"
           },
           {
             "name": "projects/my-project-123/zones/eu-central1-az1/instances/i-0db1",
-            "instanceType": "instanceTypes/gp1.core.4",
-            "imageFamily": "imageFamilies/debian-12",
-            "image": "zones/eu-central1-az1/images/img-debian-12-20261101",
+            "instanceType": "//compute.origincloudapis.eu/instanceTypes/gp1.core.4",
+            "imageFamily": "//compute.origincloudapis.eu/imageFamilies/debian-12",
+            "image": "//compute.origincloudapis.eu/zones/eu-central1-az1/images/img-debian-12-20261101",
             "state": "RUNNING",
             "loginUser": "debian",
             "createTime": "2026-10-02T08:55:00Z",
@@ -178,7 +178,7 @@
           },
           {
             "name": "projects/my-project-123/zones/eu-central1-az1/instances/i-0db1/volumeAttachments/att-9f41",
-            "volume": "projects/my-project-123/zones/eu-central1-az1/volumes/vol-1a2b3c",
+            "volume": "//pvs.origincloudapis.eu/projects/my-project-123/zones/eu-central1-az1/volumes/vol-1a2b3c",
             "device": "vdb",
             "boot": false,
             "state": "ATTACHED"

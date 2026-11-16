@@ -3,8 +3,9 @@
 Written by hand; the commands and flags are in [compute.md](compute.md).
 Read every output with `--output json`. Examples leave out `--project`,
 `--zone` and `--region`: they use the profile's, so pass them when the user
-works elsewhere. `<…-id>` is the last segment of a `name` alone; any other
-`<…>` is a `name` or an id.
+works elsewhere. `<…>` is a resource's full name, its service's host in
+front of the `name` a command printed; a resource another command made is
+named that way, as below.
 
 ## Launch an instance with a public address
 
@@ -21,7 +22,7 @@ SSH. Reuse what the project has, and create only what is missing.
      | jq -r '.vpcs[] | [.name, .internetGateway, .tags["origin:name"]] | @tsv'
    origin network list-subnets --zone eu-central1-az1 --output json \
      | jq -r '.subnets[] | [.name, .vpc, .routeTable, .tags["origin:name"]] | @tsv'
-   origin network list-routes --route-table <route-table-id> --output json
+   origin network list-routes --route-table <route-table> --output json
    ```
 
    A subnet reaches the internet when its `routeTable` has a route with
@@ -35,8 +36,8 @@ SSH. Reuse what the project has, and create only what is missing.
    origin network create-subnet --vpc <vpc>
    origin network create-internet-gateway --vpc <vpc>
    origin network create-route-table --vpc <vpc>
-   origin network create-route --route-table <route-table-id> --destination 0.0.0.0/0 --internet-gateway <internet-gateway>
-   origin network create-route-table-association --subnet <subnet-id> --route-table <route-table>
+   origin network create-route --route-table <route-table> --destination 0.0.0.0/0 --internet-gateway <internet-gateway>
+   origin network create-route-table-association --subnet <subnet> --route-table <route-table>
    ```
 
 3. A security group for the instance: one of the VPC's whose rules admit
@@ -46,9 +47,9 @@ SSH. Reuse what the project has, and create only what is missing.
 
    ```sh
    origin network create-security-group --vpc <vpc> --tag origin:name=<name>
-   origin network create-security-group-rule --security-group <security-group-id> \
+   origin network create-security-group-rule --security-group <security-group> \
      --direction INGRESS --protocol TCP --first-port 22 --cidr-block 198.51.100.0/24
-   origin network create-security-group-rule --security-group <security-group-id> \
+   origin network create-security-group-rule --security-group <security-group> \
      --direction EGRESS --protocol ALL --cidr-block 0.0.0.0/0
    ```
 
@@ -58,8 +59,9 @@ SSH. Reuse what the project has, and create only what is missing.
 4. The network interface, in the subnet and the group:
 
    ```sh
-   nic="$(origin network create-network-interface --subnet <subnet> --output json | jq -r .name)"
-   origin network create-security-group-association --network-interface "${nic##*/}" --security-group <security-group>
+   nic="$(origin network create-network-interface --subnet <subnet> --output json \
+     | jq -r '"//network.origincloudapis.eu/" + .name')"
+   origin network create-security-group-association --network-interface "$nic" --security-group <security-group>
    ```
 
 5. The key pair: one of the project's (`origin compute list-key-pairs`), or
@@ -81,15 +83,17 @@ SSH. Reuse what the project has, and create only what is missing.
    1 once it is `FAILED`, with the reason in `stateReason`:
 
    ```sh
-   origin compute create-instance --instance-type gp1.core.2 --image-family debian-12 \
+   origin compute create-instance --instance-type //compute.origincloudapis.eu/instanceTypes/gp1.core.2 \
+     --image-family //compute.origincloudapis.eu/imageFamilies/debian-12 \
      --key-pair <key-pair> --network-interface "$nic" --tag origin:name=<name> --output json
    ```
 
 8. The public address: a floating IP, associated with the interface.
 
    ```sh
-   fip="$(origin network create-floating-ip --output json | jq -r .name)"
-   origin network create-floating-ip-association --floating-ip "${fip##*/}" --network-interface "$nic"
+   fip="$(origin network create-floating-ip --output json \
+     | jq -r '"//network.origincloudapis.eu/" + .name')"
+   origin network create-floating-ip-association --floating-ip "$fip" --network-interface "$nic"
    origin network get-floating-ip --floating-ip "$fip" --output json | jq -r .address
    ```
 
@@ -103,7 +107,7 @@ floating IP are charged while they exist.
 origin compute get-instance --instance <instance> --output json \
   | jq '{state, instanceType, networkInterfaces, interfaceAddresses}'
 origin compute list-volume-attachments --instance <instance> --output json
-origin network list-security-group-associations --network-interface <network-interface-id> --output json
+origin network list-security-group-associations --network-interface <network-interface> --output json
 ```
 
 ## Stop, start and delete

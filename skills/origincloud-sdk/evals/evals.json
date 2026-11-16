@@ -41,7 +41,7 @@
           {
             "name": "projects/my-project-123/zones/eu-central1-az1/volumes/vol-reports",
             "sizeGib": 40,
-            "storageClass": "storageClasses/gp1",
+            "storageClass": "//pvs.origincloudapis.eu/storageClasses/gp1",
             "state": "CREATING",
             "tags": {
               "origin:name": "reports"
@@ -56,7 +56,7 @@
               "@type": "type.googleapis.com/origincloud.pvs.v1beta1.Volume",
               "name": "projects/my-project-123/zones/eu-central1-az1/volumes/vol-reports",
               "sizeGib": 40,
-              "storageClass": "storageClasses/gp1",
+              "storageClass": "//pvs.origincloudapis.eu/storageClasses/gp1",
               "state": "AVAILABLE",
               "tags": {
                 "origin:name": "reports"
@@ -66,7 +66,7 @@
               {
                 "name": "projects/my-project-123/zones/eu-central1-az1/volumes/vol-reports",
                 "sizeGib": 40,
-                "storageClass": "storageClasses/gp1",
+                "storageClass": "//pvs.origincloudapis.eu/storageClasses/gp1",
                 "state": "AVAILABLE",
                 "resizeState": "RESIZE_COMPLETED",
                 "tags": {
@@ -80,7 +80,7 @@
       "checks": [
         { "kind": "run", "command": "npm install --silent >/dev/null && npx tsc --noEmit", "why": "The script uses the SDK's real names." },
         { "kind": "requests_exclude", "pattern": "/volumeAttachments[^ ]* 4[0-9][0-9]", "why": "The script attaches the volume only once its operation is done, and names it and the instance as the API does." },
-        { "kind": "requests_include", "pattern": "^POST /v1beta1/projects/my-project-123/zones/eu-central1-az1/instances/i-0001a1/volumeAttachments[^ ]* 200 .*\"volume\":\"projects/my-project-123/zones/eu-central1-az1/volumes/vol-reports\"", "why": "The volume ends up attached to web-1, the instance whose origin:name it is, by the volume's name." }
+        { "kind": "requests_include", "pattern": "^POST /v1beta1/projects/my-project-123/zones/eu-central1-az1/instances/i-0001a1/volumeAttachments[^ ]* 200 .*\"volume\":\"//pvs\\.origincloudapis\\.eu/projects/my-project-123/zones/eu-central1-az1/volumes/vol-reports\"", "why": "The volume ends up attached to web-1, the instance whose origin:name it is, by the volume's full name." }
       ]
     },
     {

@@ -3,8 +3,9 @@
 Written by hand; the commands and flags are in [network.md](network.md).
 Read every output with `--output json`. Examples leave out `--project`,
 `--zone` and `--region`: they use the profile's, so pass them when the user
-works elsewhere. `<…-id>` is the last segment of a `name` alone; any other
-`<…>` is a `name` or an id.
+works elsewhere. `<…>` is a resource's full name, its service's host in
+front of the `name` a command printed; a resource another command made is
+named that way, as below.
 
 ## Allow a port or ICMP in a security group
 
@@ -19,7 +20,7 @@ add one, and remove one only with the user's yes.
    origin network list-security-groups --output json \
      | jq -r '.securityGroups[] | [.name, .vpc, .tags["origin:name"]] | @tsv'
    origin compute get-instance --instance <instance> --output json | jq -r '.networkInterfaces[]'
-   origin network list-security-group-associations --network-interface <network-interface-id> --output json \
+   origin network list-security-group-associations --network-interface <network-interface> --output json \
      | jq -r '.securityGroupAssociations[].securityGroup'
    ```
 
@@ -27,7 +28,7 @@ add one, and remove one only with the user's yes.
    more:
 
    ```sh
-   origin network list-security-group-rules --security-group <security-group-id> --output json \
+   origin network list-security-group-rules --security-group <security-group> --output json \
      | jq -r '.securityGroupRules[] | [.direction, .protocol, .firstPort, .lastPort, (.cidrBlock // .peerSecurityGroup // "same group"), .description] | @tsv'
    ```
 
@@ -39,13 +40,13 @@ add one, and remove one only with the user's yes.
 
    ```sh
    # One port: --first-port alone.
-   origin network create-security-group-rule --security-group <security-group-id> \
+   origin network create-security-group-rule --security-group <security-group> \
      --direction INGRESS --protocol TCP --first-port 443 --cidr-block 0.0.0.0/0 --description "HTTPS"
    # A range: --first-port below --last-port.
-   origin network create-security-group-rule --security-group <security-group-id> \
+   origin network create-security-group-rule --security-group <security-group> \
      --direction INGRESS --protocol UDP --first-port 60000 --last-port 61000 --cidr-block 203.0.113.0/24
    # Ping and other ICMP (ICMPv6 for an IPv6 peer); ICMP takes no ports.
-   origin network create-security-group-rule --security-group <security-group-id> \
+   origin network create-security-group-rule --security-group <security-group> \
      --direction INGRESS --protocol ICMP --cidr-block 0.0.0.0/0 --description "ping"
    ```
 
@@ -62,7 +63,7 @@ add one, and remove one only with the user's yes.
 ## Narrow a rule
 
 There is no change in place: add the narrower rule, then delete the
-broader one with `origin network delete-security-group-rule --security-group <security-group-id> --rule <rule> --yes`
+broader one with `origin network delete-security-group-rule --security-group <security-group> --rule <rule> --yes`
 once the user agreed to that rule's removal.
 
 ## Remove a security group

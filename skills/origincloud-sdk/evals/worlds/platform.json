@@ -9,13 +9,13 @@
       "name": "regions/eu-central1",
       "displayName": "EU Central 1",
       "zones": [
-        "zones/eu-central1-az1",
-        "zones/eu-central1-az2"
+        "//location.origincloudapis.eu/zones/eu-central1-az1",
+        "//location.origincloudapis.eu/zones/eu-central1-az2"
       ]
     },
     {
       "name": "zones/eu-central1-az1",
-      "region": "regions/eu-central1",
+      "region": "//location.origincloudapis.eu/regions/eu-central1",
       "services": [
         "compute",
         "network",
@@ -25,7 +25,7 @@
     },
     {
       "name": "zones/eu-central1-az2",
-      "region": "regions/eu-central1",
+      "region": "//location.origincloudapis.eu/regions/eu-central1",
       "services": [
         "compute",
         "network",
@@ -41,7 +41,7 @@
     },
     {
       "name": "projects/my-project-123",
-      "organization": "organizations/org-acme",
+      "organization": "//resourcemanager.origincloudapis.eu/organizations/org-acme",
       "displayName": "My project",
       "createTime": "2026-09-01T08:05:00Z"
     },
@@ -91,7 +91,7 @@
       "architecture": "X86_64",
       "platform": "LINUX_UNIX",
       "state": "AVAILABLE",
-      "imageFamily": "imageFamilies/debian-12",
+      "imageFamily": "//compute.origincloudapis.eu/imageFamilies/debian-12",
       "familyCurrent": true
     },
     {
@@ -108,7 +108,7 @@
       "architecture": "X86_64",
       "platform": "LINUX_UNIX",
       "state": "AVAILABLE",
-      "imageFamily": "imageFamilies/ubuntu-2404",
+      "imageFamily": "//compute.origincloudapis.eu/imageFamilies/ubuntu-2404",
       "familyCurrent": true
     },
     {
@@ -123,14 +123,14 @@
     {
       "name": "projects/my-project-123/zones/eu-central1-az1/volumes/vol-1a2b3c",
       "sizeGib": 100,
-      "storageClass": "storageClasses/gp1",
+      "storageClass": "//pvs.origincloudapis.eu/storageClasses/gp1",
       "state": "AVAILABLE",
       "resizeState": "RESIZE_COMPLETED",
       "createTime": "2026-10-02T09:00:00Z"
     },
     {
       "name": "projects/my-project-123/zones/eu-central1-az1/instances/i-0001a1",
-      "instanceType": "instanceTypes/gp1.core.2",
+      "instanceType": "//compute.origincloudapis.eu/instanceTypes/gp1.core.2",
       "state": "RUNNING",
       "loginUser": "debian",
       "createTime": "2026-10-01T09:00:00Z",
@@ -140,7 +140,7 @@
     },
     {
       "name": "projects/my-project-123/zones/eu-central1-az1/instances/i-0002a1",
-      "instanceType": "instanceTypes/gp1.core.2",
+      "instanceType": "//compute.origincloudapis.eu/instanceTypes/gp1.core.2",
       "state": "RUNNING",
       "loginUser": "debian",
       "createTime": "2026-10-02T09:00:00Z",
@@ -150,7 +150,7 @@
     },
     {
       "name": "projects/my-project-123/zones/eu-central1-az1/instances/i-0003a1",
-      "instanceType": "instanceTypes/gp1.core.2",
+      "instanceType": "//compute.origincloudapis.eu/instanceTypes/gp1.core.2",
       "state": "STOPPED",
       "loginUser": "debian",
       "createTime": "2026-10-03T09:00:00Z",
@@ -166,7 +166,7 @@
   "created": {
     "volumes": {
       "state": "AVAILABLE",
-      "storageClass": "storageClasses/gp1",
+      "storageClass": "//pvs.origincloudapis.eu/storageClasses/gp1",
       "resizeState": "RESIZE_COMPLETED"
     },
     "volumeAttachments": {
