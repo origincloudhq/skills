@@ -13,7 +13,7 @@ description: >-
 license: Apache-2.0
 metadata:
   api-revision: "bff84eefda65720ba08cac1cd0379a8ecc3f47a0"
-  cli-version: "1.21.0"
+  cli-version: "1.21.1"
 ---
 # Origin Cloud with the `origin` CLI
 

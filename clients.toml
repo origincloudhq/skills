@@ -13,7 +13,7 @@ revision = "da3aabeb3116ebc1a67cfdac8e7d2a71419f99cf"
 # its command tree comes from: "release" for the commands.json the release
 # carries, or a file of this repository.
 [cli]
-version = "1.21.0"
+version = "1.21.1"
 commands = "release"
 
 # The provider release the origincloud-terraform skill describes, by its
