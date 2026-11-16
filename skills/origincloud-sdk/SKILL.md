@@ -11,10 +11,10 @@ description: >-
   role bindings, projects or billing data through an SDK.
 license: Apache-2.0
 metadata:
-  api-revision: "bff84eefda65720ba08cac1cd0379a8ecc3f47a0"
-  sdk-go-version: "0.34.0"
-  sdk-rust-version: "0.33.0"
-  sdk-typescript-version: "0.33.0"
+  api-revision: "2205ee74b219904dcdd144bb449cdb26199f556d"
+  sdk-go-version: "0.40.0"
+  sdk-rust-version: "0.39.0"
+  sdk-typescript-version: "0.39.0"
 ---
 # Origin Cloud with the SDKs
 
