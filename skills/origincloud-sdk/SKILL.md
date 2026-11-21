@@ -11,10 +11,10 @@ description: >-
   role bindings, projects or billing data through an SDK.
 license: Apache-2.0
 metadata:
-  api-revision: "2205ee74b219904dcdd144bb449cdb26199f556d"
-  sdk-go-version: "0.40.0"
-  sdk-rust-version: "0.39.0"
-  sdk-typescript-version: "0.39.0"
+  api-revision: "e2529270abaec332ea7b007f065c756a090a71db"
+  sdk-go-version: "0.44.0"
+  sdk-rust-version: "0.43.0"
+  sdk-typescript-version: "0.44.0"
 ---
 # Origin Cloud with the SDKs
 
@@ -210,10 +210,10 @@ file.
 | billing | [references/billing.md](references/billing.md) | billingAccounts, projectBillingInfos, billingCountries, legalAcceptances, legalDocuments, legalDocumentVersions, spendLimits |
 | compute | [references/compute.md](references/compute.md) | instanceTypes, imageFamilies, images, instances, keyPairs, publicImages, volumeAttachments |
 | dns | [references/dns.md](references/dns.md) | hostedZones, recordSets, vpcAttachments |
-| iam | [references/iam.md](references/iam.md) | auditLogEntries, federatedCredentials, permissions, roles, roleBindings, serviceAccounts, users |
+| iam | [references/iam.md](references/iam.md) | auditLogEntries, federatedCredentials, permissions, roles, roleBindings, serviceAccounts, serviceAccountKeys, users |
 | kms | [references/kms.md](references/kms.md) | grants, keys, publicKeys |
 | location | [references/location.md](references/location.md) | regions, zones |
-| network | [references/network.md](references/network.md) | acls, aclAssociations, aclRules, dnsPolicies, dnsPolicyAssociations, floatingIps, floatingIpAssociations, internetGateways, natGateways, networkInterfaces, routes, routeTables, routeTableAssociations, securityGroups, securityGroupAssociations, securityGroupRules, subnets, vpcs |
+| network | [references/network.md](references/network.md) | acls, aclAssociations, aclRules, floatingIps, floatingIpAssociations, internetGateways, natGateways, networkInterfaces, resolverPolicies, resolverPolicyAssociations, routes, routeTables, routeTableAssociations, securityGroups, securityGroupAssociations, securityGroupRules, subnets, vpcs |
 | observability | [references/observability.md](references/observability.md) | — |
 | pvs | [references/pvs.md](references/pvs.md) | snapshots, storageClasses, volumes |
 | resourcemanager | [references/resourcemanager.md](references/resourcemanager.md) | organizations, projects, organizationQuotas, projectQuotas |
