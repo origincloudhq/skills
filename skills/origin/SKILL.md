@@ -12,8 +12,8 @@ description: >-
   `origin mcp serve` tools.
 license: Apache-2.0
 metadata:
-  api-revision: "2205ee74b219904dcdd144bb449cdb26199f556d"
-  cli-version: "1.22.0"
+  api-revision: "f062f310e33696e962bed0268bdc7782ad91f2bc"
+  cli-version: "3.2.0"
 ---
 # Origin Cloud with the `origin` CLI
 
@@ -257,12 +257,12 @@ and the checks the commands alone don't show.
 | Service | Reference | Resources |
 |---|---|---|
 | billing | [references/billing.md](references/billing.md), [workflows](references/billing-workflows.md) | billingAccounts, projectBillingInfos, billingCountries, legalAcceptances, legalDocuments, legalDocumentVersions, spendLimits |
-| compute | [references/compute.md](references/compute.md), [workflows](references/compute-workflows.md) | instanceTypes, imageFamilies, images, instances, keyPairs, publicImages, volumeAttachments |
+| compute | [references/compute.md](references/compute.md), [workflows](references/compute-workflows.md) | instanceTypes, imageFamilies, images, instances, keyPairs, launchTemplates, publicImages, volumeAttachments |
 | dns | [references/dns.md](references/dns.md) | hostedZones, recordSets, vpcAttachments |
-| iam | [references/iam.md](references/iam.md), [workflows](references/iam-workflows.md) | auditLogEntries, federatedCredentials, permissions, roles, roleBindings, serviceAccounts, users |
+| iam | [references/iam.md](references/iam.md), [workflows](references/iam-workflows.md) | auditLogEntries, federatedCredentials, permissions, roles, roleBindings, serviceAccounts, serviceAccountKeys, users |
 | kms | [references/kms.md](references/kms.md) | grants, keys, publicKeys |
 | location | [references/location.md](references/location.md) | regions, zones |
-| network | [references/network.md](references/network.md), [workflows](references/network-workflows.md) | acls, aclAssociations, aclRules, dnsPolicies, dnsPolicyAssociations, floatingIps, floatingIpAssociations, internetGateways, natGateways, networkInterfaces, routes, routeTables, routeTableAssociations, securityGroups, securityGroupAssociations, securityGroupRules, subnets, vpcs |
+| network | [references/network.md](references/network.md), [workflows](references/network-workflows.md) | acls, aclAssociations, aclRules, floatingIps, floatingIpAssociations, internetGateways, natGateways, networkInterfaces, resolverPolicies, resolverPolicyAssociations, routes, routeTables, routeTableAssociations, securityGroups, securityGroupAssociations, securityGroupRules, subnets, vpcs |
 | observability | [references/observability.md](references/observability.md) | — |
 | pvs | [references/pvs.md](references/pvs.md), [workflows](references/pvs-workflows.md) | snapshots, storageClasses, volumes |
 | resourcemanager | [references/resourcemanager.md](references/resourcemanager.md) | organizations, projects, organizationQuotas, projectQuotas |

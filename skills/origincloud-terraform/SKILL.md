@@ -11,8 +11,8 @@ description: >-
   service accounts, projects, billing accounts and spend limits.
 license: Apache-2.0
 metadata:
-  api-revision: "2205ee74b219904dcdd144bb449cdb26199f556d"
-  provider-version: "0.18.0"
+  api-revision: "f062f310e33696e962bed0268bdc7782ad91f2bc"
+  provider-version: "0.36.0"
 ---
 # Origin Cloud with Terraform
 
@@ -212,12 +212,12 @@ on docs.origincloud.eu is linked from each file.
 | Service | Reference | Resources |
 |---|---|---|
 | billing | [references/billing.md](references/billing.md) | billingAccounts, projectBillingInfos, billingCountries, legalAcceptances, legalDocuments, legalDocumentVersions, spendLimits |
-| compute | [references/compute.md](references/compute.md) | instanceTypes, imageFamilies, images, instances, keyPairs, publicImages, volumeAttachments |
+| compute | [references/compute.md](references/compute.md) | instanceTypes, imageFamilies, images, instances, keyPairs, launchTemplates, publicImages, volumeAttachments |
 | dns | [references/dns.md](references/dns.md) | hostedZones, recordSets, vpcAttachments |
-| iam | [references/iam.md](references/iam.md) | auditLogEntries, federatedCredentials, permissions, roles, roleBindings, serviceAccounts, users |
+| iam | [references/iam.md](references/iam.md) | auditLogEntries, federatedCredentials, permissions, roles, roleBindings, serviceAccounts, serviceAccountKeys, users |
 | kms | [references/kms.md](references/kms.md) | grants, keys, publicKeys |
 | location | [references/location.md](references/location.md) | regions, zones |
-| network | [references/network.md](references/network.md) | acls, aclAssociations, aclRules, dnsPolicies, dnsPolicyAssociations, floatingIps, floatingIpAssociations, internetGateways, natGateways, networkInterfaces, routes, routeTables, routeTableAssociations, securityGroups, securityGroupAssociations, securityGroupRules, subnets, vpcs |
+| network | [references/network.md](references/network.md) | acls, aclAssociations, aclRules, floatingIps, floatingIpAssociations, internetGateways, natGateways, networkInterfaces, resolverPolicies, resolverPolicyAssociations, routes, routeTables, routeTableAssociations, securityGroups, securityGroupAssociations, securityGroupRules, subnets, vpcs |
 | observability | [references/observability.md](references/observability.md) | — |
 | pvs | [references/pvs.md](references/pvs.md) | snapshots, storageClasses, volumes |
 | resourcemanager | [references/resourcemanager.md](references/resourcemanager.md) | organizations, projects, organizationQuotas, projectQuotas |
